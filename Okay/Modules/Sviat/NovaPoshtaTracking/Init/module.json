@@ -1,0 +1,34 @@
+{
+  "Okay": "4.5.2",
+  "version": "1.0.0",
+  "moduleName": "Менеджер ТТН для Нової Пошти",
+  "vendor": {
+    "site": "https://github.com/devSviat"
+  },
+  "modifications": {
+    "backend": [
+      {
+        "file": "order.tpl",
+        "changes": [
+          {
+            "find": "{get_design_block block=\"order_contact\"}",
+            "appendAfter": "document_form.tpl"
+          }
+        ]
+      },
+      {
+        "file": "orders.tpl",
+        "changes": [
+          {
+            "find": "{if $labels}",
+            "appendAfter": "np_status_filters.tpl"
+          },
+          {
+            "find": "{if $label_id}",
+            "appendAfter": "{if $np_status_id}\n <input type=\"hidden\" name=\"np_status\" value=\"{$np_status_id|escape}\" >\n {/if}"
+          }
+        ]
+      }
+    ]
+  }
+}

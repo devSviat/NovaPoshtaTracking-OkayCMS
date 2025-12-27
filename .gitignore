@@ -1,0 +1,11 @@
+*
+!.gitignore
+!README.md
+!.github/
+!.github/workflows/
+!.github/workflows/release.yml
+
+!/Okay/
+!/Okay/Modules/
+!/Okay/Modules/Sviat/
+!/Okay/Modules/Sviat/**
