@@ -23,43 +23,39 @@ class Init extends AbstractInit
         $this->setBackendMainController('NovaPoshtaAdmin');
 
         // Додаємо поля до таблиці NPCostDeliveryDataEntity
-        $fields = [
-            ['payer_type', 'varchar', 255, null],
-            ['payment_method', 'varchar', 255, null],
-            ['cargo_type', 'varchar', 255, null],
-            ['service_type', 'varchar', 255, null],
-            ['cost', 'decimal', '14,2', null],
-            ['control_payment', 'tinyint', 1, null],
-            ['back_payer_type', 'varchar', 255, null],
-            ['pickup_locker', 'tinyint', 1, null],
-            ['volumetric_volume', 'varchar', 50, null],
-            ['volumetric_length', 'varchar', 50, null],
-            ['volumetric_width', 'varchar', 50, null],
-            ['volumetric_height', 'varchar', 50, null],
-            ['volumetric_weight', 'varchar', 50, null],
-            ['warehouse_volume', 'varchar', 50, null],
-            ['warehouse_weight', 'varchar', 50, null],
-            ['additional_information', 'varchar', 255, null],
-        ];
-
-        foreach ($fields as [$name, $type, $size, $default]) {
-            $field = new EntityField($name);
-
-            switch ($type) {
-                case 'varchar':
-                    $field->setTypeVarchar($size, true);
-                    break;
-                case 'tinyint':
-                    $field->setTypeTinyInt($size, true);
-                    break;
-                case 'decimal':
-                    $field->setTypeDecimal($size, true);
-                    break;
-            }
-
-            $field->setDefault($default);
-            $this->migrateEntityField(NPCostDeliveryDataEntity::class, $field);
-        }
+        $payerTypeField = (new EntityField('payer_type'))->setTypeVarchar(255, true);
+        $paymentMethodField = (new EntityField('payment_method'))->setTypeVarchar(255, true);
+        $cargoTypeField = (new EntityField('cargo_type'))->setTypeVarchar(255, true);
+        $serviceTypeField = (new EntityField('service_type'))->setTypeVarchar(255, true);
+        $costField = (new EntityField('cost'))->setTypeDecimal('14,2', true);
+        $controlPaymentField = (new EntityField('control_payment'))->setTypeTinyInt(1, true);
+        $backPayerTypeField = (new EntityField('back_payer_type'))->setTypeVarchar(255, true);
+        $pickupLockerField = (new EntityField('pickup_locker'))->setTypeTinyInt(1, true);
+        $volumetricVolumeField = (new EntityField('volumetric_volume'))->setTypeVarchar(50, true);
+        $volumetricLengthField = (new EntityField('volumetric_length'))->setTypeVarchar(50, true);
+        $volumetricWidthField = (new EntityField('volumetric_width'))->setTypeVarchar(50, true);
+        $volumetricHeightField = (new EntityField('volumetric_height'))->setTypeVarchar(50, true);
+        $volumetricWeightField = (new EntityField('volumetric_weight'))->setTypeVarchar(50, true);
+        $warehouseVolumeField = (new EntityField('warehouse_volume'))->setTypeVarchar(50, true);
+        $warehouseWeightField = (new EntityField('warehouse_weight'))->setTypeVarchar(50, true);
+        $additionalInformationField = (new EntityField('additional_information'))->setTypeVarchar(255, true);
+        
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $payerTypeField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $paymentMethodField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $cargoTypeField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $serviceTypeField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $costField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $controlPaymentField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $backPayerTypeField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $pickupLockerField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $volumetricVolumeField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $volumetricLengthField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $volumetricWidthField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $volumetricHeightField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $volumetricWeightField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $warehouseVolumeField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $warehouseWeightField);
+        $this->migrateEntityField(NPCostDeliveryDataEntity::class, $additionalInformationField);
 
         // Створюємо таблицю для трекінгу
         $this->migrateEntityTable(NovaPoshtaTrackingEntity::class, [
