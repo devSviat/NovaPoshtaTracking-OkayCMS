@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: "Яку частину версії підняти?"
+        description: "Which version part to bump?"
         required: true
         default: "patch"
         type: choice
@@ -84,7 +84,7 @@ jobs:
         run: |
           VERSION=${{ steps.bump.outputs.new_tag }}
           mkdir -p dist
-          zip -r dist/BlackBox-${VERSION}.zip Okay/Modules/Sviat/BlackBox
+          zip -r dist/NovaPoshtaTracking-${VERSION}.zip Okay/Modules/Sviat/NovaPoshtaTracking
 
       - name: Delete existing release if it exists
         run: |
@@ -102,7 +102,7 @@ jobs:
           tag_name: ${{ steps.bump.outputs.new_tag }}
           name: Release ${{ steps.bump.outputs.new_tag }}
           generate_release_notes: true
-          files: dist/BlackBox-${{ steps.bump.outputs.new_tag }}.zip
+          files: dist/NovaPoshtaTracking-${{ steps.bump.outputs.new_tag }}.zip
           fail_on_unmatched_files: false
           draft: false
           prerelease: false
