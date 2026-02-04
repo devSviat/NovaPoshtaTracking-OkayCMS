@@ -1,7 +1,7 @@
 {
   "Okay": "4.5.2",
-  "version": "1.0.1",
-  "moduleName": "Менеджер ТТН для Нової Пошти",
+  "version": "1.0.2",
+  "moduleName": "Nova Poshta Tracking",
   "vendor": {
     "site": "https://github.com/devSviat"
   },
