@@ -5,7 +5,7 @@
             <div class="np-document-header">
                 {if $tracking_document->DateTimeCreatedFormatted || $tracking_document->DateCreatedFullFormatted || $tracking_document->DateTimeFormatted || $tracking_document->DateCreatedFormatted || $tracking_document->DateTime || $tracking_document->DateCreated}
                     <div class="text-muted font_12 mb-h">
-                        Створена:
+                        {$btr->sviat__novaposhta_tracking__created|escape}
                         {$tracking_document->DateTimeCreatedFormatted|default:$tracking_document->DateCreatedFullFormatted|default:$tracking_document->DateTimeFormatted|default:$tracking_document->DateCreatedFormatted|default:$tracking_document->DateTime|default:$tracking_document->DateCreated}
                     </div>
                 {/if}
@@ -14,7 +14,7 @@
                     <div class="col-md-6">
                         <div class="font_26 text_600">
                             <a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile"
-                                data-hint="Натисніть, щоб скопіювати" data-hint-copied="✔ Скопійовано"
+                                data-hint="{$btr->sviat__novaposhta_tracking__hint_copy|escape}" data-hint-copied="{$btr->sviat__novaposhta_tracking__hint_copied|escape}"
                                 data-copy-string="{$tracking_document->Number}">
                                 {$tracking_document->formatNumber}
                             </a>
@@ -36,7 +36,7 @@
                     <div class="col-md-3">
                         {if $tracking_document->CargoDescriptionString}
                             <div class="np-info-cell">
-                                <div class="np-info-cell__label">Опис відправлення</div>
+                                <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__cargo_description|escape}</div>
                                 <div class="np-info-cell__content">{$tracking_document->CargoDescriptionString}</div>
                             </div>
                         {/if}
@@ -45,7 +45,7 @@
                     <div class="col-md-3">
                         {if $tracking_document->AnnouncedPriceFormatted || $tracking_document->AnnouncedPrice}
                             <div class="np-info-cell">
-                                <div class="np-info-cell__label">Оголошена цінність</div>
+                                <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__announced_value|escape}</div>
                                 <div class="np-info-cell__content text_700">
                                     {if $tracking_document->AnnouncedPriceFormatted}
                                         {$tracking_document->AnnouncedPriceFormatted} ₴
@@ -69,7 +69,7 @@
                                 {* Дата виїзду *}
                                 {if $tracking_document->DateCreatedFormatted || $tracking_document->DateTimeFormatted}
                                     <div class="mb-2">
-                                        <div>Дата виїзду:
+                                        <div>{$btr->sviat__novaposhta_tracking__departure_date|escape}
                                             {$tracking_document->DateCreatedFormatted|default:$tracking_document->DateTimeFormatted}
                                         </div>
                                         {if $tracking_document->SenderAddressFormatted}
@@ -87,7 +87,7 @@
                                 {* Плановий час доставки *}
                                 {if $tracking_document->ScheduledDeliveryDateFinal}
                                     <div class="mt-2">
-                                        <div>Плановий час доставки: {$tracking_document->ScheduledDeliveryDateFinal}</div>
+                                        <div>{$btr->sviat__novaposhta_tracking__scheduled_delivery|escape} {$tracking_document->ScheduledDeliveryDateFinal}</div>
                                         {if $tracking_document->RecipientAddressFormatted}
                                             <div class="font_12 mt-q">
                                                 {$tracking_document->RecipientAddressFormatted}
@@ -103,7 +103,7 @@
                         <div class="np-document-body__info">
                             {if $tracking_document->RecipientFullName || $tracking_document->RecipientFullNameEW}
                                 <div class="np-info-cell mb-h">
-                                    <div class="np-info-cell__label">Отримувач</div>
+                                    <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__recipient|escape}</div>
                                     <div class="np-info-cell__content">
                                         {$tracking_document->RecipientFullName|default:$tracking_document->RecipientFullNameEW}
                                     </div>
@@ -111,19 +111,19 @@
                             {/if}
                             {if $tracking_document->PhoneRecipient}
                                 <div class="np-info-cell mb-h">
-                                    <div class="np-info-cell__label">Телефон отримувача</div>
+                                    <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__recipient_phone|escape}</div>
                                     <div class="np-info-cell__content">{$tracking_document->PhoneRecipient}</div>
                                 </div>
                             {/if}
                             {if $tracking_document->RecipientDateTime}
                                 <div class="np-info-cell">
-                                    <div class="np-info-cell__label">Отримав(ла)</div>
+                                    <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__received_at|escape}</div>
                                     <div class="np-info-cell__content">{$tracking_document->RecipientDateTime}</div>
                                 </div>
                             {/if}
                             {if $tracking_document->RecipientAddress}
                                 <div class="np-info-cell">
-                                    <div class="np-info-cell__label">Адреса отримувача</div>
+                                    <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__recipient_address|escape}</div>
                                     <div class="np-info-cell__content">{$tracking_document->RecipientAddress}</div>
                                 </div>
                             {/if}
@@ -135,12 +135,12 @@
             <!-- Додаткові послуги -->
             {if $tracking_document->Redelivery || $tracking_document->RedeliverySum || $tracking_document->AfterpaymentOnGoodsCost || ($tracking_document->LastCreatedOnTheBasisDocumentType == 'CargoReturn' && $tracking_document->LastCreatedOnTheBasisNumber) || ($tracking_document->LastCreatedOnTheBasisDocumentType == 'Redirecting' && $tracking_document->LastCreatedOnTheBasisNumber)}
                 <div class="np-document-services">
-                    <div class="font_12 text-muted text-uppercase mb-h">Додаткові послуги</div>
+                    <div class="font_12 text-muted text-uppercase mb-h">{$btr->sviat__novaposhta_tracking__extra_services|escape}</div>
                     <div class="np-document-services__items-wrapper">
                         {if $tracking_document->Redelivery || $tracking_document->RedeliverySum}
                             <div class="np-document-services__item">
                                 <span class="font_12 text_600">
-                                    Зворотна доставка
+                                    {$btr->sviat__novaposhta_tracking__redelivery|escape}
                                     {if $tracking_document->RedeliverySum}
                                         :
                                         {if $tracking_document->RedeliverySumFormatted}{$tracking_document->RedeliverySumFormatted}{else}{$tracking_document->RedeliverySum}{/if}
@@ -149,13 +149,13 @@
                                 </span>
                                 {if $tracking_document->RedeliveryPayer}
                                     <span class="text-muted font_12">
-                                        • Платник за комісію:
+                                        • {$btr->sviat__novaposhta_tracking__redelivery_payer|escape}
                                         {$tracking_document->RedeliveryPayerDisplay|default:$tracking_document->RedeliveryPayer}
                                     </span>
                                 {/if}
                                 {if $tracking_document->RedeliveryNum}
                                     <span class="text-muted font_12">
-                                        • Номер ЕН зворотної доставки: {$tracking_document->RedeliveryNum}
+                                        • {$btr->sviat__novaposhta_tracking__redelivery_number|escape} {$tracking_document->RedeliveryNum}
                                     </span>
                                 {/if}
                             </div>
@@ -164,7 +164,7 @@
                         {if $tracking_document->AfterpaymentOnGoodsCost}
                             <div class="np-document-services__item">
                                 <span class="font_12 text_600">
-                                    Контроль оплати:
+                                    {$btr->sviat__novaposhta_tracking__control_payment_label|escape}
                                     {$tracking_document->AfterpaymentOnGoodsCostFormatted|default:$tracking_document->AfterpaymentOnGoodsCost}
                                     ₴
                                 </span>
@@ -173,18 +173,18 @@
                         {/if}
                         {if $tracking_document->LastCreatedOnTheBasisDocumentType == 'CargoReturn' && $tracking_document->LastCreatedOnTheBasisNumber}
                             <div class="np-document-services__item">
-                                <span class="font_12 text_600">Повернення</span>
+                                <span class="font_12 text_600">{$btr->sviat__novaposhta_tracking__return_label|escape}</span>
                                 <span class="text-muted font_12">
-                                    • Номер повернення: {$tracking_document->LastCreatedOnTheBasisNumber}
+                                    • {$btr->sviat__novaposhta_tracking__return_number|escape} {$tracking_document->LastCreatedOnTheBasisNumber}
                                 </span>
                             </div>
                             <span class="np-document-services__separator">|</span>
                         {/if}
                         {if $tracking_document->LastCreatedOnTheBasisDocumentType == 'Redirecting' && $tracking_document->LastCreatedOnTheBasisNumber}
                             <div class="np-document-services__item">
-                                <span class="font_12 text_600">Перенаправлення</span>
+                                <span class="font_12 text_600">{$btr->sviat__novaposhta_tracking__redirect_label|escape}</span>
                                 <span class="text-muted font_12">
-                                    • Номер перенаправлення: {$tracking_document->LastCreatedOnTheBasisNumber}
+                                    • {$btr->sviat__novaposhta_tracking__redirect_number|escape} {$tracking_document->LastCreatedOnTheBasisNumber}
                                 </span>
                             </div>
                         {/if}
@@ -200,7 +200,7 @@
                         <div class="col-md-3">
                             {if $tracking_document->DocumentCost}
                                 <div class="np-info-cell">
-                                    <div class="np-info-cell__label">Вартість доставки</div>
+                                    <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__delivery_cost|escape}</div>
                                     <div class="font_18 text_600 np-info-cell__content">
                                         {if $tracking_document->DocumentCostFormatted}
                                             {$tracking_document->DocumentCostFormatted} ₴
@@ -215,7 +215,7 @@
                         <div class="col-md-3">
                             {if $tracking_document->PayerType}
                                 <div class="np-info-cell">
-                                    <div class="np-info-cell__label">Платник за доставку</div>
+                                    <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__payer_delivery|escape}</div>
                                     <div class="np-info-cell__content">
                                         {$tracking_document->PayerTypeDisplay|default:$tracking_document->PayerType}</div>
                                 </div>
@@ -225,7 +225,7 @@
                         <div class="col-md-3">
                             {if $tracking_document->PaymentMethod}
                                 <div class="np-info-cell">
-                                    <div class="np-info-cell__label">Форма оплати за доставку</div>
+                                    <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__payment_form_delivery|escape}</div>
                                     <div class="np-info-cell__content">
                                         {$tracking_document->PaymentMethodDisplay|default:$tracking_document->PaymentMethod}</div>
                                 </div>
@@ -239,7 +239,7 @@
 
             <!-- Детальна інформація (прихована) -->
             <div class="card-block boxed--grey np-document-details np-document-details--hidden" style="display: none;">
-                <div class="font_14 text_600 text-uppercase mb-1">Детальна інформація</div>
+                <div class="font_14 text_600 text-uppercase mb-1">{$btr->sviat__novaposhta_tracking__details_title|escape}</div>
 
                 <!-- Основні параметри -->
                 <div class="row mb-2">
@@ -248,7 +248,7 @@
                             {if $tracking_document->CargoTypeDisplay || $tracking_document->CargoType}
                                 <div class="col-md-3">
                                     <div class="np-info-cell">
-                                        <div class="np-info-cell__label">Тип</div>
+                                        <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__type|escape}</div>
                                         <div class="np-info-cell__content">
                                             {$tracking_document->CargoTypeDisplay|default:$tracking_document->CargoType}</div>
                                     </div>
@@ -257,7 +257,7 @@
                             {if $tracking_document->DocumentWeightFormatted || $tracking_document->DocumentWeight}
                                 <div class="col-md-3">
                                     <div class="np-info-cell">
-                                        <div class="np-info-cell__label">Вага</div>
+                                        <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__weight|escape}</div>
                                         <div class="np-info-cell__content">
                                             {if $tracking_document->DocumentWeightFormatted}
                                                 {$tracking_document->DocumentWeightFormatted}
@@ -271,7 +271,7 @@
                             {if $tracking_document->VolumeWeightFormatted || $tracking_document->VolumeWeight}
                                 <div class="col-md-3">
                                     <div class="np-info-cell">
-                                        <div class="np-info-cell__label">Об'ємна вага</div>
+                                        <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__volumetric_weight|escape}</div>
                                 <div class="np-info-cell__content">
                                     {if $tracking_document->VolumeWeightFormatted}
                                     {$tracking_document->VolumeWeightFormatted}
@@ -285,7 +285,7 @@
                         {if $tracking_document->SeatsAmount}
                         <div class="col-md-3">
                             <div class="np-info-cell">
-                                <div class="np-info-cell__label">Місць</div>
+                                <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__seats|escape}</div>
                                 <div class="np-info-cell__content">{$tracking_document->SeatsAmount}</div>
                             </div>
                         </div>
@@ -294,7 +294,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="np-info-cell">
-                        <div class="np-info-cell__label">Внутрішній номер відправлення</div>
+                        <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__internal_number|escape}</div>
                         <div class="np-info-cell__content">{$tracking_document->ClientBarcode|default:'—'}</div>
                     </div>
                 </div>
@@ -305,7 +305,7 @@
                 {if $tracking_document->FactualWeightFormatted || $tracking_document->FactualWeight || $tracking_document->ServiceType}
                 <div class="col-md-6">
                     <div class="np-info-cell">
-                        <div class="np-info-cell__label">Фактична вага з ЕН</div>
+                        <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__factual_weight|escape}</div>
                         <div class="np-info-cell__content">
                             {if $tracking_document->FactualWeightFormatted}
                             {$tracking_document->FactualWeightFormatted}
@@ -317,7 +317,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="np-info-cell">
-                        <div class="np-info-cell__label">Спосіб доставки</div>
+                        <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__delivery_method|escape}</div>
                         <div class="np-info-cell__content">
                             {$tracking_document->ServiceTypeDisplay|default:$tracking_document->ServiceType}</div>
                     </div>
@@ -331,23 +331,23 @@
         <div class="np-document-footer">
             <div class="d_flex" style="justify-content: space-between; align-items: center;">
                 <button type="button" class="np-document-footer__toggle">
-                    <span class="np-toggle-text">Показати більше</span>
+                    <span class="np-toggle-text">{$btr->sviat__novaposhta_tracking__show_more|escape}</span>
                     <i class="fn_icon_arrow fa fa-angle-down fa-lg m-t-2"></i>
                 </button>
                 {if $tracking_data}
                 <div class="d_flex" style="align-items: center; gap: 10px;">
                     {if $tracking_data->updated_at}
                     <span class="text-muted font_12">
-                        Оновлено: {$tracking_data->updated_at|date_format:"%d.%m.%Y %H:%M"}
+                        {$btr->sviat__novaposhta_tracking__updated|escape} {$tracking_data->updated_at|date_format:"%d.%m.%Y %H:%M"}
                     </span>
                     {/if}
                     {if $order && $order->id}
-                    <button type="button" title="Оновити дані трекінгу" class="fn_update_tracking btn btn_np_update"
+                    <button type="button" title="{$btr->sviat__novaposhta_tracking__btn_update_tracking|escape}" class="fn_update_tracking btn btn_np_update"
                         data-order-id="{$order->id}">
                         {include file='svg_icon.tpl' svgId='refresh_icon'}
                     </button>
                     {if $tracking_data && ($tracking_data->status_code == '1' || $tracking_data->status_code == '2')}
-                    <button type="button" id="fn_remove_document" title="Видалити накладну"
+                    <button type="button" id="fn_remove_document" title="{$btr->sviat__novaposhta_tracking__btn_remove_invoice|escape}"
                         class="btn btn_np_remove fn_remove hint-bottom-right-t-info-s-small-mobile hint-anim"
                         data-toggle="modal" data-target="#fn_action_modal" data-order-id="{$order->id}"
                         data-status-code="{$tracking_data->status_code}" onclick="removeDocumentAction($(this));">
@@ -360,7 +360,27 @@
             </div>
         </div>
     </div>
-    <script src="{$rootUrl}/Okay/Modules/Sviat/NovaPoshtaTracking/Backend/design/js/tracking_document.js"></script>
+    <script>
+        window.novaPoshtaT = {
+            show_more: "{$btr->sviat__novaposhta_tracking__show_more|escape:'javascript'}",
+            hide: "{$btr->sviat__novaposhta_tracking__hide|escape:'javascript'}",
+            order_id_not_found: "{$btr->sviat__novaposhta_tracking__order_id_not_found|escape:'javascript'}",
+            error: "{$btr->sviat__novaposhta_tracking__error|escape:'javascript'}",
+            invoice_updated: "{$btr->sviat__novaposhta_tracking__invoice_updated|escape:'javascript'}",
+            success: "{$btr->sviat__novaposhta_tracking__success|escape:'javascript'}",
+            unknown_error: "{$btr->sviat__novaposhta_tracking__unknown_error|escape:'javascript'}",
+            update_error: "{$btr->sviat__novaposhta_tracking__update_error|escape:'javascript'}",
+            connection_error: "{$btr->sviat__novaposhta_tracking__connection_error|escape:'javascript'}",
+            server_error: "{$btr->sviat__novaposhta_tracking__server_error|escape:'javascript'}",
+            not_found: "{$btr->sviat__novaposhta_tracking__not_found|escape:'javascript'}",
+            remove_error: "{$btr->sviat__novaposhta_tracking__remove_error|escape:'javascript'}",
+            removed_from_db: "{$btr->sviat__novaposhta_tracking__removed_from_db|escape:'javascript'}",
+            removed_success: "{$btr->sviat__novaposhta_tracking__removed_success|escape:'javascript'}",
+            remove_api_error: "{$btr->sviat__novaposhta_tracking__remove_api_error|escape:'javascript'}",
+            error_api: "{$btr->sviat__novaposhta_tracking__error_api|escape:'javascript'}",
+            error_connection: "{$btr->sviat__novaposhta_tracking__error_connection|escape:'javascript'}"
+        };
+    </script>
     <script>
         sclipboard();
         {literal}

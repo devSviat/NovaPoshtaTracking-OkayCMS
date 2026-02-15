@@ -1,6 +1,6 @@
 {
   "Okay": "4.5.2",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "moduleName": "Nova Poshta Tracking",
   "vendor": {
     "email": "devsviat@proton.me",
@@ -27,6 +27,14 @@
           {
             "find": "{if $label_id}",
             "appendAfter": "{if $np_status_id}\n <input type=\"hidden\" name=\"np_status\" value=\"{$np_status_id|escape}\" >\n {/if}"
+          },
+          {
+            "find": "{* Visited info *}",
+            "appendBefore": "{get_design_block block=\"orders_novaposhta_mass_result\"}\n"
+          },
+          {
+            "find": "<option data-item=\"status\" value=\"change_status\">",
+            "appendBefore": "orders_action_option.tpl"
           }
         ]
       }

@@ -5,6 +5,10 @@
     'use strict';
 
     // Перемикання детальної інформації
+    function t(key, fallback) {
+        return (window.novaPoshtaT && window.novaPoshtaT[key]) || fallback;
+    }
+
     function toggleDetails($button) {
         const $wrapper = $button.closest('.np-document-wrapper');
         const $details = $wrapper.find('.np-document-details');
@@ -24,11 +28,11 @@
                     $details.css({ 'max-height': '', 'height': '', 'display': '' });
                 }
             });
-            $textSpan.text('Приховати');
+            $textSpan.text(t('hide', 'Приховати'));
             $icon.addClass('rotate_180');
         } else {
             $details.addClass('np-document-details--hidden').slideUp(200);
-            $textSpan.text('Показати більше');
+            $textSpan.text(t('show_more', 'Показати більше'));
             $icon.removeClass('rotate_180');
         }
     }
@@ -38,7 +42,7 @@
         const orderId = $button.data('order-id');
         
         if (!orderId) {
-            toastr.error('Order ID не знайдено', 'Помилка');
+            toastr.error(t('order_id_not_found', 'Order ID не знайдено'), t('error', 'Помилка'));
             return;
         }
         
@@ -53,16 +57,16 @@
             dataType: 'json',
             success: function(response) {
                 if (response && response.error) {
-                    toastr.error(response.error, 'Помилка');
+                    toastr.error(response.error, t('error', 'Помилка'));
                 } else if (response && response.success) {
-                    toastr.success('Накладну оновлено', 'Успіх');
+                    toastr.success(t('invoice_updated', 'Накладну оновлено'), t('success', 'Успіх'));
                     setTimeout(() => location.reload(), 1500);
                 } else {
-                    toastr.error('Невідома помилка', 'Помилка');
+                    toastr.error(t('unknown_error', 'Невідома помилка'), t('error', 'Помилка'));
                 }
             },
             error: function(xhr, status, errorThrown) {
-                toastr.error('Помилка оновлення: ' + errorThrown, 'Помилка');
+                toastr.error((t('update_error', 'Помилка оновлення: %s').replace('%s', errorThrown)), t('error', 'Помилка'));
             }
         });
     }
@@ -101,14 +105,14 @@
             
             // Стандартні повідомлення залежно від статусу
             if (xhr.status === 0) {
-                return 'Помилка з\'єднання з сервером. Перевірте підключення до інтернету.';
+                return t('connection_error', 'Помилка з\'єднання з сервером. Перевірте підключення до інтернету.');
             } else if (xhr.status >= 500) {
-                return 'Помилка сервера (код ' + xhr.status + '). Спробуйте пізніше.';
+                return t('server_error', 'Помилка сервера (код %s). Спробуйте пізніше.').replace('%s', xhr.status);
             } else if (xhr.status === 404) {
-                return 'Сторінка не знайдена. Можливо, маршрут не налаштований.';
+                return t('not_found', 'Сторінка не знайдена. Можливо, маршрут не налаштований.');
             }
             
-            return 'Помилка видалення накладної. Спробуйте ще раз.';
+            return t('remove_error', 'Помилка видалення накладної. Спробуйте ще раз.');
         },
 
         /**
@@ -116,9 +120,9 @@
          */
         handleSuccess: function(response, statusCode) {
             const message = statusCode === '2' 
-                ? 'Накладну видалено з бази даних (ТТН вже була видалена в Новій Пошті)' 
-                : 'Накладну успішно видалено';
-            toastr.success(message, 'Успіх');
+                ? t('removed_from_db', 'Накладну видалено з бази даних (ТТН вже була видалена в Новій Пошті)') 
+                : t('removed_success', 'Накладну успішно видалено');
+            toastr.success(message, t('success', 'Успіх'));
             setTimeout(() => location.reload(), 1500);
         },
 
@@ -128,9 +132,9 @@
         handleApiError: function(response, $button) {
             const errorMessage = (response && response.error) 
                 ? response.error 
-                : 'Помилка видалення накладної через API Нової Пошти';
+                : t('remove_api_error', 'Помилка видалення накладної через API Нової Пошти');
             
-            toastr.error(errorMessage, 'Помилка API');
+            toastr.error(errorMessage, t('error_api', 'Помилка API'));
             $button.prop('disabled', false).removeClass('disabled');
         },
 
@@ -139,7 +143,7 @@
          */
         handleNetworkError: function(xhr, status, errorThrown, $button) {
             const errorMessage = this.extractErrorMessage(xhr);
-            toastr.error(errorMessage, 'Помилка з\'єднання');
+            toastr.error(errorMessage, t('error_connection', 'Помилка з\'єднання'));
             $button.prop('disabled', false).removeClass('disabled');
         },
 
@@ -179,7 +183,7 @@
             const statusCode = $button.data('status-code') || '';
             
             if (!orderId) {
-                toastr.error('Order ID не знайдено', 'Помилка');
+                toastr.error(t('order_id_not_found', 'Order ID не знайдено'), t('error', 'Помилка'));
                 return;
             }
 
@@ -203,11 +207,11 @@
         .on('click', '.np-document-footer__toggle', function() {
             toggleDetails($(this));
         })
-        .on('click', '.fn_update_tracking', function(e) {
+        .on('click', '.np-document-wrapper .fn_update_tracking', function(e) {
             e.preventDefault();
             updateTracking($(this));
         })
-        .on('click', '.fn_remove', function(e) {
+        .on('click', '.np-document-wrapper .fn_remove', function(e) {
             e.preventDefault();
             DocumentRemover.init($(this));
         });

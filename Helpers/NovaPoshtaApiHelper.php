@@ -20,9 +20,6 @@ class NovaPoshtaApiHelper
         $this->settings = $settings;
     }
 
-    /**
-     * Отримання кешованого значення
-     */
     private function getCached($key)
     {
         if (isset(self::$cache[$key])) {
@@ -35,9 +32,6 @@ class NovaPoshtaApiHelper
         return null;
     }
 
-    /**
-     * Збереження значення в кеш
-     */
     private function setCache($key, $data)
     {
         self::$cache[$key] = [
@@ -46,33 +40,21 @@ class NovaPoshtaApiHelper
         ];
     }
 
-    /**
-     * Генерація ключа кешу на основі запиту
-     */
     private function getCacheKey($request)
     {
         return md5(json_encode($request));
     }
 
-    /**
-     * Очищення кешу (для тестування або примусового оновлення)
-     */
     public function clearCache()
     {
         self::$cache = [];
     }
 
-    /**
-     * Статичний метод для очищення кешу без створення об'єкта
-     */
     public static function clearCacheStatic()
     {
         self::$cache = [];
     }
 
-    /**
-     * Закриває curl handle (викликати при завершенні роботи)
-     */
     public static function closeCurlHandle()
     {
         if (self::$curlHandle !== null) {
@@ -81,9 +63,7 @@ class NovaPoshtaApiHelper
         }
     }
 
-    /**
-     * Отримання контактної особи контрагента за його референсом
-     */
+    /** Контактна особа контрагента за Ref */
     public function getContactPersonByCounterpartyRef($counterpartyRef = '', $useCache = true)
     {
         if (empty($counterpartyRef)) {
@@ -118,9 +98,7 @@ class NovaPoshtaApiHelper
         return $result;
     }
 
-    /**
-     * Отримання списку контрагентів за фільтром
-     */
+    /** Список контрагентів (Sender/Recipient) */
     public function getCounterparties($filter = ['cp_property' => 'Recipient'], $useCache = true)
     {
         if (empty($filter)) {
@@ -135,7 +113,6 @@ class NovaPoshtaApiHelper
             ]
         ];
 
-        // Перевіряємо кеш (контрагенти рідко змінюються)
         if ($useCache) {
             $cacheKey = $this->getCacheKey($request);
             $cached = $this->getCached($cacheKey);
@@ -158,6 +135,7 @@ class NovaPoshtaApiHelper
     /**
      * Отримання інформації про відділення за його референсом
      */
+    /** Відділення за Ref */
     public function getWarehouseByRef($warehouseRef = '', $useCache = true)
     {
         if (empty($warehouseRef)) {
@@ -308,13 +286,7 @@ class NovaPoshtaApiHelper
         return $errorResponse;
     }
 
-    /**
-     * Отримує повідомлення про помилку з відповіді API
-     * Уніфікована логіка збору помилок з різних форматів відповідей
-     * 
-     * @param object|array $response Відповідь API
-     * @return string Повідомлення про помилку
-     */
+    /** Текст помилки з відповіді API (різні формати errors/errorMessage/error) */
     public function getErrorMessage($response): string
     {
         $errorMessages = [];

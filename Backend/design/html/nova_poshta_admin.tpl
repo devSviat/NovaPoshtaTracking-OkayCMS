@@ -39,9 +39,8 @@
             <div class="alert alert--icon">
                 <div class="alert__content">
                     <div class="alert__title">{$btr->alert_description|escape}</div>
-                    <p>Модуль для генерації експрес-накладних Нової Пошти</p>
-                    <p><b>Важливо:</b> Модуль працює за умови встановленого OkayCMS/NovaposhtaCost і доповнює його
-                        можливості.</p>
+                    <p>{$btr->sviat__novaposhta_tracking__module_description|escape}</p>
+                    <p><b>{$btr->sviat__novaposhta_tracking__module_important|escape}</b></p>
                 </div>
             </div>
         </div>
@@ -51,12 +50,12 @@
     <div class="row">
         <div class="col-lg-12 col-md-12">
             <div class="boxed mb-2">
-                <div class="heading_box mb-2">Основні налаштування</div>
+                <div class="heading_box mb-2">{$btr->sviat__novaposhta_tracking__main_settings|escape}</div>
                 <div class="row">
                     <div class="col-md-6 col-lg-4">
                         <div class="form-group">
                             <div class="heading_label heading_label--required">
-                                <span>Ключ API "Нова Пошта"</span>
+                                <span>{$btr->sviat__novaposhta_tracking__api_key|escape}</span>
                             </div>
                             <input name="newpost_key" class="form-control" type="text"
                                 value="{$settings->newpost_key|escape}" required />
@@ -65,7 +64,7 @@
                     <div class="col-md-6 col-lg-4">
                         <div class="form-group">
                             <div class="heading_label heading_label--required">
-                                <span>Телефон відправника</span>
+                                <span>{$btr->sviat__novaposhta_tracking__sender_phone|escape}</span>
                             </div>
                             <input name="sender_phone" class="form-control" type="text"
                                 value="{$settings->novapost_sender_phone|escape}" required />
@@ -74,7 +73,7 @@
                     <div class="col-md-6 col-lg-4">
                         <div class="form-group">
                             <div class="heading_label heading_label--required">
-                                <span>Місто відправника</span>
+                                <span>{$btr->sviat__novaposhta_tracking__sender_city|escape}</span>
                             </div>
                             <input type="text" class="fn_newpost_city_name form-control" name="newpost_city_name"
                                 required value="{$settings->newpost_city|newpost_city}">
@@ -84,9 +83,9 @@
                     <div class="col-md-6 col-lg-4">
                         <div class="form-group">
                             <div class="heading_label heading_label--required">
-                                <span>Відділення відправника</span>
+                                <span>{$btr->sviat__novaposhta_tracking__sender_warehouse|escape}</span>
                             </div>
-                            <select data-placeholder="Виберіть відділення"
+                            <select data-placeholder="{$btr->sviat__novaposhta_tracking__select_warehouse|escape}"
                                 class="fn_warehouse selectpicker form-control" data-live-search="true"
                                 required></select>
                             <input type="hidden" value="{$settings->novapost_sender_warehouse|escape}"
@@ -96,7 +95,7 @@
                     <div class="col-md-6 col-lg-4">
                         <div class="form-group">
                             <div class="heading_label heading_label--required">
-                                <span>Тип вантажу</span>
+                                <span>{$btr->sviat__novaposhta_tracking__cargo_type|escape}</span>
                             </div>
                             <div class="d_flex" style="gap: 20px; align-items: center;">
                                 <div class="okay_type_radio_wrap mb-0">
@@ -122,9 +121,9 @@
                     <div class="col-md-6 col-lg-4">
                         <div class="form-group">
                             <div class="heading_label heading_label--required">
-                                <span>Час відправки сьогодні</span>
+                                <span>{$btr->sviat__novaposhta_tracking__time_today|escape}</span>
                                 <i class="fn_tooltips"
-                                    title='Час, до якого прийняті замовлення відправляються в той же день. Після цього часу - на наступний робочий день.'>
+                                    title="{$btr->sviat__novaposhta_tracking__time_today_tooltip|escape}">
                                     {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                 </i>
                             </div>
@@ -141,15 +140,15 @@
     <div class="row">
         <div class="col-lg-12 col-md-12">
             <div class="boxed mb-2">
-                <div class="heading_box mb-2">Базові налаштування відправок</div>
+                <div class="heading_box mb-2">{$btr->sviat__novaposhta_tracking__default_shipment_settings|escape}</div>
                 <div class="row">
                     <div class="col-lg-6 col-md-6">
-                        <div class="heading_label mb-2 font_14 text_600">Оплата</div>
+                        <div class="heading_label mb-2 font_14 text_600">{$btr->sviat__novaposhta_tracking__payment|escape}</div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Платник посилки</span>
+                                        <span>{$btr->sviat__novaposhta_tracking__parcel_payer|escape}</span>
                                     </div>
                                     <div class="okay_type_radio_wrap mb-h">
                                         <input id="payer_type_1" class="hidden_check" name="payer_type" value="Sender"
@@ -173,7 +172,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Платник зворотної доставки</span>
+                                        <span>{$btr->sviat__novaposhta_tracking__back_payer_short|escape}</span>
                                     </div>
                                     <div class="okay_type_radio_wrap mb-h">
                                         <input id="back_payer_type_1" class="hidden_check" name="back_payer_type"
@@ -196,7 +195,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Тип оплати</span>
+                                        <span>{$btr->sviat__novaposhta_tracking__payment_type|escape}</span>
                                     </div>
                                     <div class="okay_type_radio_wrap mb-h">
                                         <input id="payment_method_1" class="hidden_check" name="payment_method"
@@ -204,9 +203,9 @@
                                             {if !$settings->novapost_payment_method || $settings->novapost_payment_method == 'Cash'}checked=""
                                             {/if} />
                                         <label for="payment_method_1" class="okay_type_radio">
-                                            <span>Готівкою</span>
+                                            <span>{$btr->sviat__novaposhta_tracking__payment_cash_short|escape}</span>
                                             <i class="fn_tooltips pl-1"
-                                                title='Готівкою або банківською карткою на сайті/через термінал.'>
+                                                title="{$btr->sviat__novaposhta_tracking__payment_cash_short_tooltip|escape}">
                                                 {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                             </i>
                                         </label>
@@ -216,9 +215,9 @@
                                             value="NonCash" type="radio" required
                                             {if $settings->novapost_payment_method == 'NonCash'}checked="" {/if} />
                                         <label for="payment_method_2" class="okay_type_radio">
-                                            <span>Безготівковий</span>
+                                            <span>{$btr->sviat__novaposhta_tracking__payment_noncash_short|escape}</span>
                                             <i class="fn_tooltips pl-1"
-                                                title='Безготівковий розрахунок для відправника або отримувача доступний лише за умови підписання договору з Новою Поштою.'>
+                                                title="{$btr->sviat__novaposhta_tracking__payment_noncash_short_tooltip|escape}">
                                                 {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                             </i>
                                         </label>
@@ -231,9 +230,9 @@
                                         <div class="activity_of_switch_item">
                                             <div class="okay_switch clearfix">
                                                 <label class="switch_label">
-                                                    Включити контроль оплати
+                                                    {$btr->sviat__novaposhta_tracking__enable_control_payment|escape}
                                                     <i class="fn_tooltips"
-                                                        title='Послуга передбачає контроль оплати готівкою за отримане Отримувачем відправлення. Кошти перераховуються Відправнику на його поточний рахунок (наступного робочого дня) на підставі укладеного договору з Новою Поштою.'>
+                                                        title="{$btr->sviat__novaposhta_tracking__enable_control_payment_tooltip|escape}">
                                                         {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                                     </i>
                                                 </label>
@@ -252,12 +251,12 @@
                         </div>
                     </div>
                     <div class="col-lg-6 col-md-6 mb-3">
-                        <div class="heading_label mb-2 font_14 text_600">Габарити для поштомату</div>
+                        <div class="heading_label mb-2 font_14 text_600">{$btr->sviat__novaposhta_tracking__locker_dimensions|escape}</div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Об'єм місця</span>
+                                        <span>{$btr->sviat__novaposhta_tracking__volume_place|escape}</span>
                                     </div>
                                     <div class="input-group">
                                         <input name="novapost_volumetric_volume" class="form-control" type="number"
@@ -271,8 +270,8 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Фактична вага</span>
-                                        <i class="fn_tooltips" title='Максимум: 20 кг (для поштомату)'>
+                                        <span>{$btr->sviat__novaposhta_tracking__actual_weight|escape}</span>
+                                        <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__actual_weight_locker_tooltip|escape}">
                                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                         </i>
                                     </div>
@@ -288,8 +287,8 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Довжина</span>
-                                        <i class="fn_tooltips" title='Максимум: 35 см'>
+                                        <span>{$btr->sviat__novaposhta_tracking__length_cm|escape}</span>
+                                        <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__max_35_cm|escape}">
                                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                         </i>
                                     </div>
@@ -304,8 +303,8 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Ширина</span>
-                                        <i class="fn_tooltips" title='Максимум: 37 см'>
+                                        <span>{$btr->sviat__novaposhta_tracking__width_cm|escape}</span>
+                                        <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__max_37_cm|escape}">
                                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                         </i>
                                     </div>
@@ -321,8 +320,8 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Висота</span>
-                                        <i class="fn_tooltips" title='Максимум: 61 см'>
+                                        <span>{$btr->sviat__novaposhta_tracking__height_cm|escape}</span>
+                                        <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__max_61_cm|escape}">
                                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                         </i>
                                     </div>
@@ -337,13 +336,13 @@
                         </div>
                     </div>
                     <div class="col-lg-6 col-md-6">
-                        <div class="heading_label mb-2 font_14 text_600">Габарити для відділення</div>
+                        <div class="heading_label mb-2 font_14 text_600">{$btr->sviat__novaposhta_tracking__warehouse_dimensions|escape}</div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Об'єм</span>
-                                        <i class="fn_tooltips" title="Максимум: 0.12 м³ (об'ємна вага не більше 30 кг)">
+                                        <span>{$btr->sviat__novaposhta_tracking__volume|escape}</span>
+                                        <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__volume_warehouse_tooltip|escape}">
                                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                         </i>
                                     </div>
@@ -359,8 +358,8 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <div class="heading_label heading_label--required">
-                                        <span>Фактична вага</span>
-                                        <i class="fn_tooltips" title='Максимум: 30 кг (для відділення)'>
+                                        <span>{$btr->sviat__novaposhta_tracking__actual_weight|escape}</span>
+                                        <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__actual_weight_warehouse_tooltip|escape}">
                                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                         </i>
                                     </div>

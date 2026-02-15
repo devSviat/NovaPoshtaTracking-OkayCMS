@@ -1,22 +1,24 @@
 <div class="delivery_novaposhta_document">
     <hr>
     <div class="font_16 mb-1">
-        Параметри відправлення
+        {$btr->sviat__novaposhta_tracking__params_shipment|escape}
     </div>
     <div class="row">
         <div class="col-md-12">
             <div id="service_type" class="row">
                 <div class="col-md-12">
-                    <div class="heading_label">Тип доставки:</div>
+                    <div class="heading_label">{$btr->sviat__novaposhta_tracking__delivery_type|escape}</div>
                     <div id="delivery_type" class="row">
+                        {assign var="is_warehouse_empty" value=empty($dataNPCostDeliveryDataEntity->warehouse_id)}
+                        {if !$is_warehouse_empty}
                         <div class="col-md-6">
                             <div class="okay_type_radio_wrap">
                                 <input id="delivery_type_warehouse" class="hidden_check"
                                     name="delivery_type_radiobutton" type="radio" value="warehouse"
-                                    {if (!isset($dataNPCostDeliveryDataEntity->pickup_locker) OR ($dataNPCostDeliveryDataEntity->pickup_locker != 1)) AND (!isset($pickup_locker) OR ($pickup_locker != 1))}checked=""
+                                    {if (!isset($dataNPCostDeliveryDataEntity->pickup_locker) OR ($dataNPCostDeliveryDataEntity->pickup_locker != 1)) AND (!isset($pickup_locker) OR ($pickup_locker != 1)) AND (empty($dataNPCostDeliveryDataEntity->city_name) OR empty($dataNPCostDeliveryDataEntity->street))}checked=""
                                     {/if} />
                                 <label for="delivery_type_warehouse" class="okay_type_radio">
-                                    <span>Відділення</span>
+                                    <span>{$btr->sviat__novaposhta_tracking__warehouse|escape}</span>
                                 </label>
                             </div>
                         </div>
@@ -27,28 +29,77 @@
                                     {if (isset($dataNPCostDeliveryDataEntity->pickup_locker) AND ($dataNPCostDeliveryDataEntity->pickup_locker == 1)) OR (isset($pickup_locker) AND ($pickup_locker == 1))}checked=""
                                     {/if} />
                                 <label for="delivery_type_locker" class="okay_type_radio">
-                                    <span>Поштомат
+                                    <span>{$btr->sviat__novaposhta_tracking__locker|escape}
                                         <i class="fn_tooltips"
-                                            title="Ідентифікатор упаковки для кожного місця відправлення (налаштування в модулі)">
+                                            title="{$btr->sviat__novaposhta_tracking__locker_tooltip|escape}">
                                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                         </i>
                                     </span>
                                 </label>
                             </div>
                         </div>
+                        {else}
+                        <div class="col-md-12">
+                            <div class="okay_type_radio_wrap">
+                                <input id="delivery_type_address" class="hidden_check" name="delivery_type_radiobutton"
+                                    type="radio" value="address"
+                                    {if (!isset($dataNPCostDeliveryDataEntity->pickup_locker) OR ($dataNPCostDeliveryDataEntity->pickup_locker != 1)) AND (!isset($pickup_locker) OR ($pickup_locker != 1)) AND (!empty($dataNPCostDeliveryDataEntity->city_name) AND !empty($dataNPCostDeliveryDataEntity->street))}checked=""
+                                    {/if} />
+                                <label for="delivery_type_address" class="okay_type_radio">
+                                    <span>{$btr->sviat__novaposhta_tracking__address_delivery|escape}</span>
+                                </label>
+                            </div>
+                        </div>
+                        {/if}
                     </div>
                 </div>
             </div>
 
-            {* Габарити для відділення *}
+            {* Доставка до дверей (тільки для адресної доставки) *}
+            <div id="door_delivery_block" class="row mb-h"
+                style="display: {if !empty($dataNPCostDeliveryDataEntity->city_name) AND !empty($dataNPCostDeliveryDataEntity->street)}block{else}none{/if};">
+                <div class="col-md-12">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="heading_label">
+                                {$btr->sviat__novaposhta_tracking__door_delivery|escape}
+                                <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__door_delivery_tooltip|escape}">
+                                    {include file='svg_icon.tpl' svgId='icon_tooltips'}
+                                </i>
+                            </div>
+                            {assign var="door_delivery_value" value=0}
+                            {if isset($dataNPCostDeliveryDataEntity->door_delivery) AND ($dataNPCostDeliveryDataEntity->door_delivery == 1)}
+                                {assign var="door_delivery_value" value=1}
+                            {/if}
+                            <input type="hidden" name="door_delivery" id="door_delivery_hidden" value="{$door_delivery_value}" />
+                            <label class="switch switch-default">
+                                <input class="switch-input" type="checkbox" id="door_delivery_checkbox" value="1"
+                                    {if $door_delivery_value == 1}checked=""{/if} />
+                                <span class="switch-label"></span>
+                                <span class="switch-handle"></span>
+                            </label>
+                        </div>
+                        <div class="col-md-6" id="floors_lifting_block" style="display: {if $door_delivery_value == 1}block{else}none{/if};">
+                            <div class="form-group">
+                                <label class="heading_label">{$btr->sviat__novaposhta_tracking__floor|escape}</label>
+                                <input class="form-control" type="number" name="lifting_floor" id="lifting_floor"
+                                    value="{if isset($dataNPCostDeliveryDataEntity->lifting_floor) && $dataNPCostDeliveryDataEntity->lifting_floor}{$dataNPCostDeliveryDataEntity->lifting_floor|escape}{/if}"
+                                    placeholder="{$btr->sviat__novaposhta_tracking__floor_placeholder|escape}" min="1" max="99" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {* Габарити для відділення та адресної доставки *}
             <div id="warehouse_params" class="row"
                 style="display: {if isset($dataNPCostDeliveryDataEntity->pickup_locker) AND ($dataNPCostDeliveryDataEntity->pickup_locker == 1)}none{else}block{/if};">
                 <div class="col-md-12">
-                    <div class="heading_label mb-h">Параметри вантажу (для відділення):</div>
+                    <div class="heading_label mb-h">{$btr->sviat__novaposhta_tracking__cargo_params|escape}</div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group mb-h">
-                                <label class="heading_label">Вага (кг):</label>
+                                <label class="heading_label">{$btr->sviat__novaposhta_tracking__weight_kg|escape}</label>
                                 <input class="form-control" type="number" name="warehouse_weight"
                                     value="{if isset($dataNPCostDeliveryDataEntity->warehouse_weight) && $dataNPCostDeliveryDataEntity->warehouse_weight}{$dataNPCostDeliveryDataEntity->warehouse_weight}{else}{$settings->novapost_warehouse_weight|default:'0.5'}{/if}"
                                     placeholder="{$settings->novapost_warehouse_weight|default:'0.5'}" min="0.1"
@@ -57,7 +108,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group mb-h">
-                                <label class="heading_label">Об'єм (м³):</label>
+                                <label class="heading_label">{$btr->sviat__novaposhta_tracking__volume_m3|escape}</label>
                                 <input class="form-control" type="number" name="warehouse_volume" id="warehouse_volume"
                                     value="{if isset($dataNPCostDeliveryDataEntity->warehouse_volume) && $dataNPCostDeliveryDataEntity->warehouse_volume}{$dataNPCostDeliveryDataEntity->warehouse_volume}{else}{$settings->novapost_warehouse_volume|default:'0.0004'}{/if}"
                                     placeholder="{$settings->novapost_warehouse_volume|default:'0.0004'}" min="0.0004"
@@ -72,7 +123,7 @@
             <div id="volumetric_params" class="row"
                 style="display: {if isset($dataNPCostDeliveryDataEntity->pickup_locker) AND ($dataNPCostDeliveryDataEntity->pickup_locker == 1)}block{else}none{/if};">
                 <div class="col-md-12">
-                    <div class="heading_label mb-h">Параметри вантажу (для поштомату):</div>
+                    <div class="heading_label mb-h">{$btr->sviat__novaposhta_tracking__cargo_params_locker|escape}</div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group mb-h">
@@ -81,7 +132,7 @@
                                     value="{if isset($dataNPCostDeliveryDataEntity->volumetric_weight) && $dataNPCostDeliveryDataEntity->volumetric_weight}{$dataNPCostDeliveryDataEntity->volumetric_weight}{else}{$settings->novapost_volumetric_weight}{/if}"
                                     placeholder="{$settings->novapost_weight|default:'0.1'}" min="0" max="20"
                                     step="0.1" />
-                                <small class="text-muted">Макс. 20 кг</small>
+                                <small class="text-muted">{$btr->sviat__novaposhta_tracking__max_20_kg|escape}</small>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -97,29 +148,29 @@
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label class="heading_label">Довжина:</label>
-                                <input class="form-control" type="number" name="volumetric_length"
+<label class="heading_label">{$btr->sviat__novaposhta_tracking__length|escape}</label>
+                                    <input class="form-control" type="number" name="volumetric_length"
                                     value="{if isset($dataNPCostDeliveryDataEntity->volumetric_length) && $dataNPCostDeliveryDataEntity->volumetric_length}{$dataNPCostDeliveryDataEntity->volumetric_length}{else}{$settings->novapost_volumetric_length}{/if}"
                                     placeholder="{$settings->novapost_length|default:'15'}" min="0" max="60" />
-                                <small class="text-muted">Макс. 60 см</small>
+                                <small class="text-muted">{$btr->sviat__novaposhta_tracking__max_60_cm|escape}</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label class="heading_label">Ширина:</label>
-                                <input class="form-control" type="number" name="volumetric_width"
+<label class="heading_label">{$btr->sviat__novaposhta_tracking__width|escape}</label>
+                                    <input class="form-control" type="number" name="volumetric_width"
                                     value="{if isset($dataNPCostDeliveryDataEntity->volumetric_width) && $dataNPCostDeliveryDataEntity->volumetric_width}{$dataNPCostDeliveryDataEntity->volumetric_width}{else}{$settings->novapost_volumetric_width}{/if}"
                                     placeholder="{$settings->novapost_width|default:'10'}" min="0" max="40" />
-                                <small class="text-muted">Макс. 40 см</small>
+                                <small class="text-muted">{$btr->sviat__novaposhta_tracking__max_40_cm|escape}</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label class="heading_label">Висота:</label>
-                                <input class="form-control" type="number" name="volumetric_height"
+<label class="heading_label">{$btr->sviat__novaposhta_tracking__height|escape}</label>
+                                    <input class="form-control" type="number" name="volumetric_height"
                                     value="{if isset($dataNPCostDeliveryDataEntity->volumetric_height) && $dataNPCostDeliveryDataEntity->volumetric_height}{$dataNPCostDeliveryDataEntity->volumetric_height}{else}{$settings->novapost_volumetric_height}{/if}"
                                     placeholder="{$settings->novapost_height|default:'20'}" min="0" max="30" />
-                                <small class="text-muted">Макс. 30 см</small>
+                                <small class="text-muted">{$btr->sviat__novaposhta_tracking__max_30_cm|escape}</small>
                             </div>
                         </div>
                     </div>
@@ -132,8 +183,8 @@
         <div class="col-md-12">
             <div id="service_type" class="row">
                 <div class="col-md-6">
-                    <div class="heading_label">Оголошена цінність:
-                        <i class="fn_tooltips" title="Сума зворотної доставки, або оголошена цінність відправлення.">
+                    <div class="heading_label">{$btr->sviat__novaposhta_tracking__announced_value|escape}
+                        <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__announced_value_tooltip|escape}">
                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                         </i>
                     </div>
@@ -142,9 +193,9 @@
                         min="0" step="0.01" />
                 </div>
                 <div class="col-md-6">
-                    <div class="heading_label">Контроль оплати
+                    <div class="heading_label">{$btr->sviat__novaposhta_tracking__control_payment|escape}
                         <i class="fn_tooltips"
-                            title="Пряме зарахування коштів від отримувача на рахунок відправника. Схоже на Грошовий переказ. Не можна використовувати разом з Грошовим переказом.">
+                            title="{$btr->sviat__novaposhta_tracking__control_payment_tooltip|escape}">
                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                         </i>
                     </div>
@@ -174,20 +225,35 @@
     <div class="form-group">
         <div class="heading_label">
             <span>
-                Додаткова інформація про відправку:
-                <i class="fn_tooltips" title="Максимальна довжина 100 символів">
+                {$btr->sviat__novaposhta_tracking__additional_info|escape}
+                <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__additional_info_tooltip|escape}">
                     {include file='svg_icon.tpl' svgId='icon_tooltips'}
                 </i>
             </span>
         </div>
         <input class="form-control" type="text" name="additional-information"
             value="{if $dataNPCostDeliveryDataEntity->additional_information}{$dataNPCostDeliveryDataEntity->additional_information}{else}{$order->additional_information}{/if}"
-            placeholder="Побутова техніка" />
+            placeholder="{$btr->sviat__novaposhta_tracking__additional_info_placeholder|escape}" />
+    </div>
+
+    {* Коментар до адреси (тільки для адресної доставки) *}
+    <div id="recipient_address_note_block" class="form-group" style="display: {if !empty($dataNPCostDeliveryDataEntity->city_name) AND !empty($dataNPCostDeliveryDataEntity->street)}block{else}none{/if};">
+        <div class="heading_label">
+            <span>
+                {$btr->sviat__novaposhta_tracking__address_comment|escape}
+                <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__address_comment_tooltip|escape}">
+                    {include file='svg_icon.tpl' svgId='icon_tooltips'}
+                </i>
+            </span>
+        </div>
+        <input class="form-control" type="text" name="recipient-address-note" id="recipient_address_note"
+            value="{if isset($dataNPCostDeliveryDataEntity->recipient_address_note) && $dataNPCostDeliveryDataEntity->recipient_address_note}{$dataNPCostDeliveryDataEntity->recipient_address_note|escape}{/if}"
+            placeholder="{$btr->sviat__novaposhta_tracking__address_comment_placeholder|escape}" maxlength="50" />
     </div>
 
     <div class="row mb-2">
         <div class="col-md-12">
-            <div class="heading_label">Тип вантажу:</div>
+            <div class="heading_label">{$btr->sviat__novaposhta_tracking__cargo_type|escape}</div>
             <div id="cargo_type" class="row">
                 <div class="col-md-6">
                     <div class="okay_type_radio_wrap">
@@ -197,7 +263,7 @@
                             {elseif $settings->novapost_cargo_type == 'Cargo'}checked="" 
                             {/if} />
                         <label for="cargo_type_radio_1" class="okay_type_radio">
-                            <span>Вантаж</span>
+                            <span>{$btr->sviat__novaposhta_tracking__cargo|escape}</span>
                         </label>
                     </div>
                 </div>
@@ -209,14 +275,14 @@
                             {elseif ($settings->novapost_cargo_type == 'Documents')}checked="" 
                             {/if} />
                         <label for="cargo_type_radio_2" class="okay_type_radio">
-                            <span>Документи</span>
+                            <span>{$btr->sviat__novaposhta_tracking__documents|escape}</span>
                         </label>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-12">
-            <div class="heading_label">Платник за доставку:</div>
+            <div class="heading_label">{$btr->sviat__novaposhta_tracking__payer|escape}</div>
             <div id="payer_type" class="row">
                 <div class="col-md-6">
                     <div class="okay_type_radio_wrap">
@@ -226,7 +292,7 @@
                             {elseif $settings->novapost_payer_type == 'Sender'}checked="" 
                             {/if} />
                         <label for="payer_type_radio_1" class="okay_type_radio">
-                            <span>Відправник</span>
+                            <span>{$btr->sviat__novaposhta_tracking__sender|escape}</span>
                         </label>
                     </div>
                 </div>
@@ -238,14 +304,14 @@
                             {elseif ($settings->novapost_payer_type == 'Recipient')}checked="" 
                             {/if} />
                         <label for="payer_type_radio_2" class="okay_type_radio">
-                            <span>Одержувач</span>
+                            <span>{$btr->sviat__novaposhta_tracking__recipient|escape}</span>
                         </label>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-12">
-            <div class="heading_label">Платник зворотної доставки:</div>
+            <div class="heading_label">{$btr->sviat__novaposhta_tracking__back_payer|escape}</div>
             <div id="back_payer_type" class="row">
                 <div class="col-md-6">
                     <div class="okay_type_radio_wrap">
@@ -255,7 +321,7 @@
                             {elseif ($settings->novapost_back_payer_type == 'Sender')}checked="" 
                             {/if} />
                         <label for="back_payer_type_radio_1" class="okay_type_radio">
-                            <span>Відправник</span>
+                            <span>{$btr->sviat__novaposhta_tracking__sender|escape}</span>
                         </label>
                     </div>
                 </div>
@@ -267,14 +333,14 @@
                             {elseif ($settings->novapost_back_payer_type == 'Recipient')}checked="" 
                             {/if} />
                         <label for="back_payer_type_radio_2" class="okay_type_radio">
-                            <span>Одержувач</span>
+                            <span>{$btr->sviat__novaposhta_tracking__recipient|escape}</span>
                         </label>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-12">
-            <div class="heading_label">Форма оплати:</div>
+            <div class="heading_label">{$btr->sviat__novaposhta_tracking__payment_form|escape}</div>
             <div id="payment_method" class="row">
                 <div class="col-md-6">
                     <div class="okay_type_radio_wrap">
@@ -284,9 +350,9 @@
                             {elseif $settings->novapost_payment_method == 'Cash'}checked="" 
                             {/if} />
                         <label for="payment_method_radio_1" class="okay_type_radio">
-                            <span>Готівкою
+                            <span>{$btr->sviat__novaposhta_tracking__payment_cash|escape}
                                 <i class="fn_tooltips"
-                                    title='Готівкова оплата: готівкою або банківською карткою на сайті/через термінал.'>
+                                    title="{$btr->sviat__novaposhta_tracking__payment_cash_tooltip|escape}">
                                     {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                 </i>
                             </span>
@@ -301,9 +367,9 @@
                             {elseif $settings->novapost_payment_method == 'NonCash'}checked="" 
                             {/if} />
                         <label for="payment_method_radio_2" class="okay_type_radio">
-                            <span>Безготівковий
+                            <span>{$btr->sviat__novaposhta_tracking__payment_noncash|escape}
                                 <i class="fn_tooltips"
-                                    title='Безготівкова оплата для організацій з договором з НП. Оплата на розрахунковий рахунок згідно акту виконаних робіт (не банківська картка).'>
+                                    title="{$btr->sviat__novaposhta_tracking__payment_noncash_tooltip|escape}">
                                     {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                 </i>
                             </span>
@@ -321,9 +387,9 @@
             value="{if $np_order->np_warehouse_id}{$np_order->np_warehouse_id|escape}{else}{$user->np_warehouse_ref}{/if}" />
 
         <div class="mb-1">
-            <div class="heading_label">Місто</div>
+            <div class="heading_label">{$btr->sviat__novaposhta_tracking__city|escape}</div>
             <div class="edit_order_detail">
-                <select name="city" style="width: 265px;padding: 2px;" data-placeholder="Виберіть місто" tabindex="1"
+                <select name="city" style="width: 265px;padding: 2px;" data-placeholder="{$btr->sviat__novaposhta_tracking__select_city|escape}" tabindex="1"
                     class="city_novaposhta">
                     {if $ttn_novapost_cities}
                         {$ttn_novapost_cities}
@@ -344,13 +410,25 @@
     {/if}
 
     {if !empty($order->id)}
+        <script>
+            window.npDocumentFormT = {
+                order_paid_control: "{$btr->sviat__novaposhta_tracking__order_paid_control_disabled|escape:'javascript'}",
+                attention: "{$btr->sviat__novaposhta_tracking__attention|escape:'javascript'}",
+                volumetric_limit: "{$btr->sviat__novaposhta_tracking__volumetric_weight_limit|escape:'javascript'}",
+                invoice_created: "{$btr->sviat__novaposhta_tracking__invoice_created_success|escape:'javascript'}",
+                success: "{$btr->sviat__novaposhta_tracking__success|escape:'javascript'}",
+                unknown_error: "{$btr->sviat__novaposhta_tracking__unknown_error|escape:'javascript'}",
+                error: "{$btr->sviat__novaposhta_tracking__error|escape:'javascript'}",
+                create_error: "{$btr->sviat__novaposhta_tracking__create_invoice_error|escape:'javascript'}"
+            };
+        </script>
         <div class="fn_delivery_novaposhta" style="display: block;">
             <div class="fn_error hidden boxed boxed_warning"></div>
             <button id="fn_generate_document" class="btn btn-info {if $novaposhta_delivery_data->ref_id} disabled{/if}">
-                <span class="btn-text">Створити накладну</span>
+                <span class="btn-text">{$btr->sviat__novaposhta_tracking__btn_create_invoice|escape}</span>
                 <span class="btn-loader hidden">
                     <span class="spinner"></span>
-                    <span class="loader-text">Створення...</span>
+                    <span class="loader-text">{$btr->sviat__novaposhta_tracking__creating|escape}</span>
                 </span>
             </button>
         </div>
@@ -370,7 +448,7 @@
                     if (isOrderPaid && $(this).prop('disabled')) {
                         e.preventDefault();
                         e.stopPropagation();
-                        toastr.warning('Замовлення сплачене, контроль оплати недоступний', 'Увага');
+                        toastr.warning(window.npDocumentFormT.order_paid_control, window.npDocumentFormT.attention);
                         return false;
                     }
                 });
@@ -388,9 +466,20 @@
 
                 // Перемикання полів габаритів
                 $('input[name="delivery_type_radiobutton"]').on('change', function() {
-                    const isLocker = $(this).val() === 'locker';
+                    const deliveryType = $(this).val();
+                    const isLocker = deliveryType === 'locker';
+                    const isAddress = deliveryType === 'address';
                     $('#volumetric_params').toggle(isLocker);
                     $('#warehouse_params').toggle(!isLocker);
+                    $('#recipient_address_note_block').toggle(isAddress);
+                    $('#door_delivery_block').toggle(isAddress);
+                });
+
+                // Синхронізація checkbox доставки до дверей з hidden input
+                $('#door_delivery_checkbox').on('change', function() {
+                    const isChecked = $(this).is(':checked');
+                    $('#door_delivery_hidden').val(isChecked ? '1' : '0');
+                    $('#floors_lifting_block').toggle(isChecked);
                 });
 
                 // Валідація об'єму (макс. 30 кг об'ємної ваги)
@@ -400,8 +489,7 @@
                         const volumetricWeight = volume * 250;
                         if (volumetricWeight > 30) {
                             $(this).val('0.12');
-                            alert('Об\'ємна вага (' + volumetricWeight.toFixed(2) +
-                                ' кг) перевищує ліміт 30 кг. Об\'єм обмежено до 0.12 м³');
+                            alert(window.npDocumentFormT.volumetric_limit.replace('%s', volumetricWeight.toFixed(2)));
                         }
                     }
                 });
@@ -445,7 +533,9 @@
                     }
                     $('#control_payment_hidden').val(control_payment);
 
-                    const pickup_locker = getRadioValue('delivery_type_radiobutton') === 'locker' ? 1 : 0;
+                    const deliveryType = getRadioValue('delivery_type_radiobutton');
+                    const pickup_locker = deliveryType === 'locker' ? 1 : 0;
+                    const delivery_type_address = deliveryType === 'address' ? 1 : 0;
                     let warehouse_volume = $('input[name="warehouse_volume"]').val();
                     let warehouse_weight = $('input[name="warehouse_weight"]').val();
 
@@ -462,9 +552,13 @@
                             payment_method_value: getRadioValue('payment_method_radiobutton'),
                             service_type_value: getRadioValue('service_type_radiobutton'),
                             additional_information_value: $('input[name="additional-information"]').val(),
+                            recipient_address_note_value: $('input[name="recipient-address-note"]').val(),
+                            door_delivery: $('#door_delivery_hidden').val(),
+                            lifting_floor: $('input[name="lifting_floor"]').val(),
                             control_payment: control_payment,
                             control_payment_value: $('input[name="cost"]').val(),
                             pickup_locker: pickup_locker,
+                            delivery_type_address: delivery_type_address,
                             volumetric_volume: $('input[name="volumetric_volume"]').val(),
                             volumetric_length: $('input[name="volumetric_length"]').val(),
                             volumetric_width: $('input[name="volumetric_width"]').val(),
@@ -489,7 +583,7 @@
                                 $('#fn_generate_document').addClass('disabled').prop('disabled', true);
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
                                 
-                                toastr.success('Накладну ' + (data.int_doc_number || '') + ' успішно створено', 'Успіх');
+                                toastr.success(window.npDocumentFormT.invoice_created.replace('%s', data.int_doc_number || ''), window.npDocumentFormT.success);
                                 setTimeout(() => location.reload(), 1500);
                             } else if (data.error) {
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
@@ -497,12 +591,12 @@
                                 toastr.error(data.error, 'Помилка');
                             } else {
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
-                                toastr.error('Невідома помилка', 'Помилка');
+                                toastr.error(window.npDocumentFormT.unknown_error, window.npDocumentFormT.error);
                             }
                         },
                         error: function(xhr, status, errorThrown) {
                             toggleLoading($button, $buttonText, $buttonLoader, false);
-                            toastr.error('Помилка створення накладної: ' + errorThrown, 'Помилка');
+                            toastr.error(window.npDocumentFormT.create_error.replace('%s', errorThrown), window.npDocumentFormT.error);
                         }
                     });
                 });

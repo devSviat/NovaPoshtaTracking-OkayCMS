@@ -4,6 +4,7 @@
 namespace Okay\Modules\Sviat\NovaPoshtaTracking;
 
 use Okay\Admin\Helpers\BackendOrdersHelper;
+use Okay\Core\BackendTranslations;
 use Okay\Core\Design;
 use Okay\Core\EntityFactory;
 use Okay\Core\Languages;
@@ -35,6 +36,7 @@ return [
             new SR(Languages::class),
             new SR(NovaPoshtaStatusHelper::class),
             new SR(NovaPoshtaDocumentService::class),
+            new SR(BackendTranslations::class),
         ]
     ],
     NovaPoshtaStatusHelper::class => [

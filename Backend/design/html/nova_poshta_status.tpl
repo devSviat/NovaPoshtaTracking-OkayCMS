@@ -12,7 +12,7 @@
                 </svg>
             </div>
             <a href="" class="fn_clipboard hint-bottom-middle-t-info-s-small-mobile np-status-doc-number"
-                data-hint="Натисніть, щоб скопіювати" data-hint-copied="✔ Скопійовано"
+                data-hint="{$btr->sviat__novaposhta_tracking__hint_copy|escape}" data-hint-copied="{$btr->sviat__novaposhta_tracking__hint_copied|escape}"
                 data-copy-string="{$tracking->int_doc_number}">
                 {$tracking->formatNumber}
             </a>
@@ -29,7 +29,7 @@
             <span class="np-status-badge hint-bottom-middle-t-info-s-small-mobile np-status-badge--failed"
                 {if !empty($trackingResponse) && !empty($trackingResponse->Status)}data-hint="{$trackingResponse->Status|escape}"
                 {/if}>
-                Статус: {$tracking->status_code}
+                {$btr->sviat__novaposhta_tracking__status|escape} {$tracking->status_code}
             </span>
         {/if}
 

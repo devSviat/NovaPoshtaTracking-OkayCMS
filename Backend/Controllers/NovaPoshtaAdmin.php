@@ -8,9 +8,7 @@ use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
 
 class NovaPoshtaAdmin extends IndexAdmin
 {
-    /**
-     * Відображення та збереження налаштувань модуля
-     */
+    /** Налаштування модуля (API, відділення, габарити за замовч.) */
     public function fetch()
     {
         if ($this->request->method('POST')) {
@@ -34,16 +32,14 @@ class NovaPoshtaAdmin extends IndexAdmin
             $this->settings->set('novapost_warehouse_volume', $this->normalizeNumericValue($this->request->post('novapost_warehouse_volume')));
             $this->settings->set('novapost_warehouse_weight', $this->normalizeNumericValue($this->request->post('novapost_warehouse_weight')));
 
-            // Очищаємо кеш API при зміні API ключа
             $newApiKey = $this->settings->get('newpost_key');
             if ($oldApiKey !== $newApiKey) {
-                NovaPoshtaApiHelper::clearCacheStatic();
+                NovaPoshtaApiHelper::clearCacheStatic(); // кеш API при зміні ключа
             }
 
             $paymentControl = $this->settings->get('novapost_payment_control');
-
-            // Якщо контроль оплати вимкнено, очищаємо значення у всіх замовленнях з накладженим платежем
             if ($paymentControl === null) {
+                // вимкнено контроль оплати — очищаємо control_payment у всіх замовлень
                 $deliveryDataEntity = $this->entityFactory->get(NPCostDeliveryDataEntity::class);
                 $deliveryDataList = $deliveryDataEntity->mappedBy('id')->find(['redelivery' => '1']);
                 $ids = array_keys($deliveryDataList);
@@ -55,12 +51,6 @@ class NovaPoshtaAdmin extends IndexAdmin
         $this->response->setContent($this->design->fetch('nova_poshta_admin.tpl'));
     }
 
-    /**
-     * Нормалізує числове значення: замінює кому на крапку
-     * 
-     * @param string|null $value
-     * @return string|null
-     */
     private function normalizeNumericValue($value)
     {
         if ($value === null || $value === '') {

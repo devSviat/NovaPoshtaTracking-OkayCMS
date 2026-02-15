@@ -347,3 +347,31 @@
 .switch.switch-default.switch-disabled .switch-label::after {
     background-image: none;
 }
+
+.np-mass-errors.alert {
+    padding: 8px 12px;
+}
+
+.np-mass-errors .alert__content {
+    margin: 0;
+}
+
+.np-mass-errors .alert__title {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.np-mass-errors__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.np-mass-errors__list li {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}

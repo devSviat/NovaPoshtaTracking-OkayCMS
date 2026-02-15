@@ -22,7 +22,7 @@ class Init extends AbstractInit
     {
         $this->setBackendMainController('NovaPoshtaAdmin');
 
-        // Додаємо поля до таблиці NPCostDeliveryDataEntity
+        // Поля NPCostDeliveryDataEntity (розширення таблиці з OkayCMS NovaposhtaCost)
         $payerTypeField = (new EntityField('payer_type'))->setTypeVarchar(255, true);
         $paymentMethodField = (new EntityField('payment_method'))->setTypeVarchar(255, true);
         $cargoTypeField = (new EntityField('cargo_type'))->setTypeVarchar(255, true);
@@ -57,7 +57,7 @@ class Init extends AbstractInit
         $this->migrateEntityField(NPCostDeliveryDataEntity::class, $warehouseWeightField);
         $this->migrateEntityField(NPCostDeliveryDataEntity::class, $additionalInformationField);
 
-        // Створюємо таблицю для трекінгу
+        // Таблиця трекінгу накладних
         $this->migrateEntityTable(NovaPoshtaTrackingEntity::class, [
             (new EntityField('id'))->setIndexPrimaryKey()->setTypeInt(11, false)->setAutoIncrement(),
             (new EntityField('order_id'))->setTypeInt(11)->setIndex(),
@@ -90,12 +90,16 @@ class Init extends AbstractInit
         $this->registerEntityField(NPCostDeliveryDataEntity::class, 'warehouse_volume');
         $this->registerEntityField(NPCostDeliveryDataEntity::class, 'warehouse_weight');
         $this->registerEntityField(NPCostDeliveryDataEntity::class, 'additional_information');
+        $this->registerEntityField(NPCostDeliveryDataEntity::class, 'recipient_address_note');
+        $this->registerEntityField(NPCostDeliveryDataEntity::class, 'door_delivery');
+        $this->registerEntityField(NPCostDeliveryDataEntity::class, 'lifting_floor');
 
         $this->registerBackendController('NovaPoshtaAdmin');
         $this->addBackendControllerPermission('NovaPoshtaAdmin', 'orders');
 
         $this->addBackendBlock('order_custom_block', 'tracking_document.tpl');
         $this->addBackendBlock('orders_list_name', 'nova_poshta_status.tpl');
+        $this->addBackendBlock('orders_novaposhta_mass_result', 'novaposhta_mass_result.tpl');
 
         $this->registerQueueExtension(
             [BackendOrdersHelper::class, 'findOrder'],
@@ -125,7 +129,7 @@ class Init extends AbstractInit
             [BackendOrdersHelper::class, 'buildFilter'],
             [BackendExtender::class, 'buildFilter']
         );
-        $this->registerQueueExtension(
+        $this->registerChainExtension(
             [OrdersAdmin::class, 'fetch'],
             [BackendExtender::class, 'fetch']
         );
@@ -148,6 +152,25 @@ class Init extends AbstractInit
                 ->time('*/10 * * * *')
                 ->overlap(false)
                 ->timeout(1800)
+        );
+    }
+
+    /**
+     * Оновлення до версії 1.0.3: recipient_address_note, door_delivery, lifting_floor
+     */
+    public function update_1_0_3()
+    {
+        $this->migrateEntityField(
+            NPCostDeliveryDataEntity::class,
+            (new EntityField('recipient_address_note'))->setTypeVarchar(50, true)
+        );
+        $this->migrateEntityField(
+            NPCostDeliveryDataEntity::class,
+            (new EntityField('door_delivery'))->setTypeTinyInt(1, true)
+        );
+        $this->migrateEntityField(
+            NPCostDeliveryDataEntity::class,
+            (new EntityField('lifting_floor'))->setTypeVarchar(10, true)
         );
     }
 }
