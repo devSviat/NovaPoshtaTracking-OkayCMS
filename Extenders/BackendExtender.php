@@ -15,6 +15,7 @@ use Okay\Core\Settings;
 use Okay\Entities\CategoriesEntity;
 use Okay\Entities\DeliveriesEntity;
 use Okay\Entities\OrdersEntity;
+use Okay\Entities\PaymentsEntity;
 use Okay\Helpers\DiscountsHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPWarehousesEntity;
@@ -154,6 +155,28 @@ class BackendExtender implements ExtensionInterface
                 $this->design->assign('delivery', $delivery);
             }
         }
+
+        // Вибір типу отримувача (юр. особа / фіз. особа) — тільки якщо встановлено InvoicePayment і замовлення з цим типом оплати
+        $showRecipientTypeChoice = false;
+        $defaultRecipientType = 'PrivatePerson';
+        $invoicePaymentEntityClass = 'Okay\Modules\Sviat\InvoicePayment\Entities\InvoicePaymentDataEntity';
+        if (class_exists($invoicePaymentEntityClass) && $dataOrdersEntity && !empty($dataOrdersEntity->payment_method_id)) {
+            $paymentMethod = $this->entityFactory->get(PaymentsEntity::class)->get($dataOrdersEntity->payment_method_id);
+            if ($paymentMethod && isset($paymentMethod->module) && $paymentMethod->module === 'Sviat/InvoicePayment') {
+                try {
+                    $invoiceDataEntity = $this->entityFactory->get($invoicePaymentEntityClass);
+                    $invoiceData = $invoiceDataEntity->findOne(['order_id' => $orderId]);
+                    if ($invoiceData && !empty(trim((string)$invoiceData->edrpou)) && !empty(trim((string)$invoiceData->company_name))) {
+                        $showRecipientTypeChoice = true;
+                        $defaultRecipientType = 'Organization';
+                    }
+                } catch (\Throwable $e) {
+                    // модуль вимкнений або таблиця відсутня
+                }
+            }
+        }
+        $this->design->assign('show_recipient_type_choice', $showRecipientTypeChoice);
+        $this->design->assign('default_recipient_type', $defaultRecipientType);
 
         return $purchases;
     }

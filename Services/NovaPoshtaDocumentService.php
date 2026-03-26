@@ -10,6 +10,7 @@ use Okay\Core\Settings;
 use Okay\Entities\CurrenciesEntity;
 use Okay\Entities\DeliveriesEntity;
 use Okay\Entities\OrdersEntity;
+use Okay\Entities\PaymentsEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Entities\NovaPoshtaTrackingEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
@@ -139,12 +140,23 @@ class NovaPoshtaDocumentService
                 return ['error' => 'Sender not found'];
             }
 
-            // Для адресної доставки не потрібен recipientData через addCounterparty
+            // Дані юридичної особи (ЄДРПОУ, назва) з модуля InvoicePayment — для накладної на компанію
+            $invoicePaymentData = $this->getInvoicePaymentDataForOrder($orderId);
+
+            // Для адресної доставки не потрібен recipientData. Для відділення/поштомату — потрібен контрагент (фіз. особа), крім випадку організації (передаємо рядком).
             $recipientData = null;
             if (empty($formData['delivery_type_address'])) {
-                $recipientData = $this->getRecipientData($order, $phoneFormatted);
-                if (!$recipientData) {
-                    return ['error' => 'Recipient contact person not found'];
+                $isLegalEntityToWarehouse = ($formData['recipient_type'] ?? '') === 'Organization'
+                    && $invoicePaymentData
+                    && !empty(trim((string)$invoicePaymentData->edrpou))
+                    && !empty(trim((string)$invoicePaymentData->company_name));
+                if ($isLegalEntityToWarehouse) {
+                    $recipientData = [];
+                } else {
+                    $recipientData = $this->getRecipientData($order, $phoneFormatted);
+                    if (!$recipientData) {
+                        return ['error' => 'Recipient contact person not found'];
+                    }
                 }
             }
 
@@ -160,7 +172,8 @@ class NovaPoshtaDocumentService
                 $volumetricParams,
                 $warehouseParams,
                 $totalWeight,
-                $totalVolume
+                $totalVolume,
+                $invoicePaymentData
             );
 
             if (!$apiRequest) {
@@ -389,11 +402,27 @@ class NovaPoshtaDocumentService
             'novapost_back_payer_type'
         );
 
+        $recipientType = trim((string)$this->getRequestParam('recipient_type_value'));
+        if ($recipientType !== 'Organization' && $recipientType !== 'PrivatePerson') {
+            $recipientType = 'PrivatePerson';
+            // Масове створення: форми немає — створюємо на компанію лише якщо тип оплати InvoicePayment і є запис у sviat__invoice_payment_data
+            if ($deliveryData && !empty($deliveryData->order_id)) {
+                $orderId = (int)$deliveryData->order_id;
+                if ($this->orderUsesInvoicePayment($orderId)) {
+                    $invoiceData = $this->getInvoicePaymentDataForOrder($orderId);
+                    if ($invoiceData && !empty(trim((string)$invoiceData->edrpou)) && !empty(trim((string)$invoiceData->company_name))) {
+                        $recipientType = 'Organization';
+                    }
+                }
+            }
+        }
+
         return [
             'payer_type' => $payerType,
             'cargo_type' => $cargoType,
             'payment_method' => $paymentMethod,
             'back_payer_type' => $backPayerType,
+            'recipient_type' => $recipientType,
             'additional_information' => $additionalInformation,
             'recipient_address_note' => $recipientAddressNote,
             'control_payment' => $controlPayment,
@@ -496,7 +525,7 @@ class NovaPoshtaDocumentService
         array $warehouseParams,
         bool $afterSuccess = false
     ): void {
-        $orderId = $this->request->get('order_id', 'int');
+        $orderId = (int)($this->request->get('order_id') ?? $this->request->post('order_id') ?? 0);
 
         $updateData = [
             'payer_type' => $formData['payer_type'],
@@ -708,23 +737,59 @@ class NovaPoshtaDocumentService
     }
 
     /**
-     * Отримує дані отримувача
+     * Отримує дані отримувача (контрагент НП для доставки на відділення/поштомат).
+     * Якщо в замовленні порожні ім'я/прізвище (наприклад, замовлення на юр. особу),
+     * підставляється назва компанії з InvoicePayment або заглушка, щоб API НП прийняв запит.
      */
     private function getRecipientData($order, $phoneFormatted)
     {
-        $recipientResult = $this->apiHelper->addCounterparty($order->name, $order->last_name, $phoneFormatted);
-        if (empty($recipientResult->data[0])) {
+        $orderId = (int)($order->id ?? 0);
+        $firstName = trim((string)($order->name ?? ''));
+        $lastName = trim((string)($order->last_name ?? ''));
+
+        if ($firstName === '' || $lastName === '') {
+            $invoiceData = $this->getInvoicePaymentDataForOrder($orderId);
+            $companyName = $invoiceData && !empty(trim((string)$invoiceData->company_name))
+                ? trim((string)$invoiceData->company_name)
+                : '';
+            if ($lastName === '' && $companyName !== '') {
+                $lastName = mb_substr($companyName, 0, 99);
+            }
+            if ($firstName === '') {
+                $firstName = $lastName !== '' ? 'Контакт' : 'Отримувач';
+            }
+            if ($lastName === '') {
+                $lastName = 'Отримувач';
+            }
+        }
+
+        $recipientResult = $this->apiHelper->addCounterparty($firstName, $lastName, $phoneFormatted);
+
+        if (!$recipientResult || empty($recipientResult->data[0])) {
+            return null;
+        }
+
+        if (isset($recipientResult->success) && !$recipientResult->success && !empty($recipientResult->errors)) {
             return null;
         }
 
         $recipient = $recipientResult->data[0];
-        if (empty($recipient->ContactPerson->data[0])) {
+        $contactPerson = isset($recipient->ContactPerson->data[0]) ? $recipient->ContactPerson->data[0] : null;
+
+        if (!$contactPerson && !empty($recipient->Ref)) {
+            $contactsResult = $this->apiHelper->getContactPersonByCounterpartyRef($recipient->Ref, false);
+            if ($contactsResult && !empty($contactsResult->data[0])) {
+                $contactPerson = $contactsResult->data[0];
+            }
+        }
+
+        if (!$contactPerson) {
             return null;
         }
 
         return [
             'recipient' => $recipient,
-            'contact_person' => $recipient->ContactPerson->data[0],
+            'contact_person' => $contactPerson,
         ];
     }
 
@@ -742,7 +807,8 @@ class NovaPoshtaDocumentService
         array $volumetricParams,
         array $warehouseParams,
         $totalWeight,
-        $totalVolume
+        $totalVolume,
+        $invoicePaymentData = null
     ) {
         $date = $this->getShipmentDate();
         $currency = $this->getCurrency();
@@ -770,8 +836,48 @@ class NovaPoshtaDocumentService
             $volumetricParams,
             $warehouseParams,
             $totalWeight,
-            $totalVolume
+            $totalVolume,
+            $invoicePaymentData ?? null
         );
+    }
+
+    /**
+     * Чи замовлення використовує спосіб оплати модуля InvoicePayment (оплата для юр. осіб).
+     */
+    private function orderUsesInvoicePayment(int $orderId): bool
+    {
+        try {
+            $order = $this->entityFactory->get(OrdersEntity::class)->findOne(['id' => $orderId]);
+            if (!$order || empty($order->payment_method_id)) {
+                return false;
+            }
+            $payment = $this->entityFactory->get(PaymentsEntity::class)->get($order->payment_method_id);
+            return $payment && isset($payment->module) && $payment->module === 'Sviat/InvoicePayment';
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Дані юридичної особи по замовленню (модуль InvoicePayment): ЄДРПОУ та повна назва компанії.
+     * Повертає null, якщо модуль не встановлений, вимкнений, таблиця відсутня або по замовленню немає даних.
+     */
+    private function getInvoicePaymentDataForOrder(int $orderId): ?object
+    {
+        $invoicePaymentEntityClass = 'Okay\Modules\Sviat\InvoicePayment\Entities\InvoicePaymentDataEntity';
+        if (!class_exists($invoicePaymentEntityClass)) {
+            return null;
+        }
+        try {
+            $entity = $this->entityFactory->get($invoicePaymentEntityClass);
+            $data = $entity->findOne(['order_id' => $orderId]);
+            if ($data && !empty(trim((string)$data->edrpou)) && !empty(trim((string)$data->company_name))) {
+                return $data;
+            }
+        } catch (\Throwable $e) {
+            // Таблиця відсутня (модуль не встановлений) або інша помилка БД
+        }
+        return null;
     }
 
     /**
@@ -791,7 +897,8 @@ class NovaPoshtaDocumentService
         array $volumetricParams,
         array $warehouseParams,
         $totalWeight,
-        $totalVolume
+        $totalVolume,
+        $invoicePaymentData = null
     ) {
         // Визначаємо тип доставки
         $isAddressDelivery = !empty($formData['delivery_type_address']);
@@ -805,6 +912,12 @@ class NovaPoshtaDocumentService
                 $deliveryData->city_name ?? null
             );
         }
+
+        // Отримувач — юридична особа (компанія), якщо користувач вибрав Organization і є дані з InvoicePayment
+        $isLegalEntity = ($formData['recipient_type'] ?? '') === 'Organization'
+            && $invoicePaymentData
+            && !empty(trim((string)$invoicePaymentData->edrpou))
+            && !empty(trim((string)$invoicePaymentData->company_name));
 
         // Базові параметри запиту (спільні для всіх типів)
         $methodProperties = [
@@ -840,11 +953,18 @@ class NovaPoshtaDocumentService
             $methodProperties["RecipientAddressName"] = $deliveryData->street ?? '';
             $methodProperties["RecipientHouse"] = $deliveryData->house ?? '';
             $methodProperties["RecipientFlat"] = $deliveryData->apartment ?? '';
-            $methodProperties["RecipientName"] = $recipientFullName;
-            $methodProperties["RecipientType"] = "PrivatePerson";
-            $methodProperties["RecipientContactName"] = $recipientFullName;
-            // $methodProperties["EDRPOU"] = "";
-            // $methodProperties["OwnershipForm"] = "";
+
+            if ($isLegalEntity) {
+                // Юридична особа (компанія): дані з модуля InvoicePayment
+                $methodProperties["RecipientType"] = "Organization";
+                $methodProperties["EDRPOU"] = mb_substr(trim((string)$invoicePaymentData->edrpou), 0, 20);
+                $methodProperties["RecipientName"] = trim((string)$invoicePaymentData->company_name);
+                $methodProperties["RecipientContactName"] = $recipientFullName ?: $methodProperties["RecipientName"];
+            } else {
+                $methodProperties["RecipientName"] = $recipientFullName;
+                $methodProperties["RecipientType"] = "PrivatePerson";
+                $methodProperties["RecipientContactName"] = $recipientFullName;
+            }
 
             // Доставка до дверей (NumberOfFloorsLifting)
             if ($formData['door_delivery'] == 1 && !empty($formData['lifting_floor'])) {
@@ -855,14 +975,23 @@ class NovaPoshtaDocumentService
                 $methodProperties["SettlementType"] = $settlementType;
             }
         } elseif ($isWarehouseDelivery) {
-            // Доставка на склад/поштомат
+            // Доставка на склад/поштомат (відділення-відділення або відділення-поштомат)
             $methodProperties["CityRecipient"] = $deliveryData->city_id ?? '';
             $methodProperties["RecipientAddress"] = $deliveryData->warehouse_id ?? '';
-            if (!empty($recipientData['contact_person'])) {
-                $methodProperties["ContactRecipient"] = $recipientData['contact_person']->Ref;
-            }
-            if (!empty($recipientData['recipient'])) {
-                $methodProperties["Recipient"] = $recipientData['recipient']->Ref;
+            if ($isLegalEntity) {
+                // Організація: не передаємо ContactRecipient/Recipient (API НП приймає отримувача за EDRPOU/рядком)
+                $recipientFullName = trim(($order->last_name ?? '') . ' ' . ($order->name ?? ''));
+                $methodProperties["RecipientType"] = "Organization";
+                $methodProperties["EDRPOU"] = mb_substr(trim((string)$invoicePaymentData->edrpou), 0, 20);
+                $methodProperties["RecipientName"] = trim((string)$invoicePaymentData->company_name);
+                $methodProperties["RecipientContactName"] = $recipientFullName ?: $methodProperties["RecipientName"];
+            } else {
+                if (!empty($recipientData['contact_person'])) {
+                    $methodProperties["ContactRecipient"] = $recipientData['contact_person']->Ref;
+                }
+                if (!empty($recipientData['recipient'])) {
+                    $methodProperties["Recipient"] = $recipientData['recipient']->Ref;
+                }
             }
         }
 

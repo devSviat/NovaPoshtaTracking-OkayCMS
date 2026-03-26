@@ -6,6 +6,9 @@ $lang['sviat__novaposhta_tracking__create_ttn'] = 'Створити ТТН Но�
 // document_form.tpl — параметри відправлення
 $lang['sviat__novaposhta_tracking__params_shipment'] = 'Параметри відправлення';
 $lang['sviat__novaposhta_tracking__delivery_type'] = 'Тип доставки:';
+$lang['sviat__novaposhta_tracking__recipient_type'] = 'Отримувач:';
+$lang['sviat__novaposhta_tracking__recipient_type_organization'] = 'Юридична особа (компанія)';
+$lang['sviat__novaposhta_tracking__recipient_type_private'] = 'Фізична особа';
 $lang['sviat__novaposhta_tracking__warehouse'] = 'Відділення';
 $lang['sviat__novaposhta_tracking__locker'] = 'Поштомат';
 $lang['sviat__novaposhta_tracking__locker_tooltip'] = 'Ідентифікатор упаковки для кожного місця відправлення (налаштування в модулі)';

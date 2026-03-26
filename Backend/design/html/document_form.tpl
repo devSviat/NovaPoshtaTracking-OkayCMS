@@ -55,6 +55,35 @@
                 </div>
             </div>
 
+            {* Тип отримувача: юр. особа (компанія) / фіз. особа — тільки якщо є дані з InvoicePayment *}
+            {if $show_recipient_type_choice}
+            <div class="row mb-h" id="recipient_type_block">
+                <div class="col-md-12">
+                    <div class="heading_label">{$btr->sviat__novaposhta_tracking__recipient_type|escape}</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="okay_type_radio_wrap">
+                                <input id="recipient_type_organization" class="hidden_check" name="recipient_type_radiobutton" type="radio" value="Organization"
+                                    {if $default_recipient_type == 'Organization'}checked=""{/if} />
+                                <label for="recipient_type_organization" class="okay_type_radio">
+                                    <span>{$btr->sviat__novaposhta_tracking__recipient_type_organization|escape}</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="okay_type_radio_wrap">
+                                <input id="recipient_type_private" class="hidden_check" name="recipient_type_radiobutton" type="radio" value="PrivatePerson"
+                                    {if $default_recipient_type == 'PrivatePerson'}checked=""{/if} />
+                                <label for="recipient_type_private" class="okay_type_radio">
+                                    <span>{$btr->sviat__novaposhta_tracking__recipient_type_private|escape}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {/if}
+
             {* Доставка до дверей (тільки для адресної доставки) *}
             <div id="door_delivery_block" class="row mb-h"
                 style="display: {if !empty($dataNPCostDeliveryDataEntity->city_name) AND !empty($dataNPCostDeliveryDataEntity->street)}block{else}none{/if};">
@@ -543,6 +572,7 @@
                     if (!warehouse_weight || warehouse_weight === '0') warehouse_weight = '';
 
                     $.ajax({
+                        type: 'POST',
                         url: "{/literal}{url_generator route="Sviat_NovaPoshtaTracking_generateDocument" absolute=1}{literal}",
                         data: {
                             order_id: '{/literal}{$order->id}{literal}',
@@ -565,7 +595,8 @@
                             volumetric_height: $('input[name="volumetric_height"]').val(),
                             volumetric_weight: $('input[name="volumetric_weight"]').val(),
                             warehouse_volume: warehouse_volume,
-                            warehouse_weight: warehouse_weight
+                            warehouse_weight: warehouse_weight,
+                            recipient_type_value: ($('input[name="recipient_type_radiobutton"]:checked').length ? $('input[name="recipient_type_radiobutton"]:checked').val() : 'PrivatePerson')
                         },
                         dataType: 'json',
                         success: function(data) {

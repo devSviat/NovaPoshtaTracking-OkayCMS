@@ -19,7 +19,7 @@ class TrackingDocumentController extends AbstractController
     public function generateDocument(NovaPoshtaDocumentService $documentService)
     {
         try {
-            $orderId = $this->request->get('order_id', 'int');
+            $orderId = $this->request->get('order_id', 'int') ?: $this->request->post('order_id', 'int');
             if (!$orderId) {
                 $this->jsonError('Order ID is required');
                 return;

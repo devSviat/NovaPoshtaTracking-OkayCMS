@@ -18,8 +18,12 @@
                                 data-copy-string="{$tracking_document->Number}">
                                 {$tracking_document->formatNumber}
                             </a>
-                            <a href="https://new.novaposhta.ua/edit/{$tracking_document->refId}" class="np-document-link"
-                                target="_blank">
+                            {if $tracking_data && $tracking_data->status_code == '1' && $tracking_document->refId}
+                                {assign var=np_document_href value="https://new.novaposhta.ua/edit/"|cat:($tracking_document->refId|escape:'url')}
+                            {else}
+                                {assign var=np_document_href value="https://novaposhta.ua/tracking/"|cat:($tracking_document->Number|escape:'url')}
+                            {/if}
+                            <a href="{$np_document_href}" class="np-document-link" target="_blank" rel="noopener">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round"
@@ -101,7 +105,16 @@
 
                     <div class="col-md-4">
                         <div class="np-document-body__info">
-                            {if $tracking_document->RecipientFullName || $tracking_document->RecipientFullNameEW}
+                            {if $tracking_document->CounterpartyType == 'Organization' && ($tracking_document->CounterpartyRecipientDescription || $tracking_document->RecipientFullName)}
+                                <div class="np-info-cell mb-h">
+                                    <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__recipient|escape}</div>
+                                    <div class="np-info-cell__content">
+                                        {if $tracking_document->CounterpartyRecipientDescription}{$tracking_document->CounterpartyRecipientDescription|escape}{/if}
+                                        {if $tracking_document->CounterpartyRecipientDescription && $tracking_document->RecipientFullName}<br>{/if}
+                                        {if $tracking_document->RecipientFullName}{$tracking_document->RecipientFullName|escape}{/if}
+                                    </div>
+                                </div>
+                            {elseif $tracking_document->RecipientFullName || $tracking_document->RecipientFullNameEW}
                                 <div class="np-info-cell mb-h">
                                     <div class="np-info-cell__label">{$btr->sviat__novaposhta_tracking__recipient|escape}</div>
                                     <div class="np-info-cell__content">
