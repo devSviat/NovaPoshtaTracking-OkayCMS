@@ -1,6 +1,6 @@
 {
   "Okay": "4.5.2",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "moduleName": "Nova Poshta Tracking",
   "vendor": {
     "email": "devsviat@proton.me",
@@ -35,6 +35,17 @@
           {
             "find": "<option data-item=\"status\" value=\"change_status\">",
             "appendBefore": "orders_action_option.tpl"
+          }
+        ]
+      }
+    ],
+    "front": [
+      {
+        "file": "order.tpl",
+        "changes": [
+          {
+            "find": "{if $delivery}",
+            "appendAfter": "order_ttn_link.tpl"
           }
         ]
       }

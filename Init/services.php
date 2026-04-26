@@ -16,6 +16,7 @@ use Okay\Core\Settings;
 use Okay\Entities\CurrenciesEntity;
 use Okay\Helpers\DiscountsHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\BackendExtender;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\FrontExtender;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaStatusHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentCronHelper;
@@ -38,6 +39,13 @@ return [
             new SR(NovaPoshtaDocumentService::class),
             new SR(BackendTranslations::class),
         ]
+    ],
+    FrontExtender::class => [
+        'class' => FrontExtender::class,
+        'arguments' => [
+            new SR(Design::class),
+            new SR(EntityFactory::class),
+        ],
     ],
     NovaPoshtaStatusHelper::class => [
         'class' => NovaPoshtaStatusHelper::class,

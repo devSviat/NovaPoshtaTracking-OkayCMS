@@ -10,9 +10,11 @@ use Okay\Core\Modules\AbstractInit;
 use Okay\Core\Modules\EntityField;
 use Okay\Core\Scheduler\Schedule;
 use Okay\Entities\OrdersEntity;
+use Okay\Helpers\OrdersHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Entities\NovaPoshtaTrackingEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\BackendExtender;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\FrontExtender;
 use Okay\Modules\Sviat\NovaPoshtaTracking\ExtendsEntities\OrdersEntityExtend;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentCronHelper;
 
@@ -104,6 +106,10 @@ class Init extends AbstractInit
         $this->registerQueueExtension(
             [BackendOrdersHelper::class, 'findOrder'],
             [BackendExtender::class, 'findOrder']
+        );
+        $this->registerQueueExtension(
+            [OrdersHelper::class, 'getOrderPurchasesList'],
+            [FrontExtender::class, 'getOrderPurchasesList']
         );
         $this->registerQueueExtension(
             [BackendOrdersHelper::class, 'findOrderPurchases'],
