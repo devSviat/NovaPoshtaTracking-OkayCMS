@@ -4,7 +4,7 @@ namespace Okay\Modules\Sviat\NovaPoshtaTracking\Controllers;
 
 use Okay\Controllers\AbstractController;
 use Okay\Core\Managers;
-use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\Engine;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\AdminIdentity;
 use Okay\Entities\ManagersEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Services\NovaPoshtaDocumentService;
@@ -23,11 +23,12 @@ class TrackingDocumentController extends AbstractController
      * Генерація експрес-накладної через API Нової Пошти
      */
     public function generateDocument(
+        AdminIdentity $adminIdentity,
         NovaPoshtaDocumentService $documentService,
         Managers $managers,
         ManagersEntity $managersEntity
     ) {
-        if (!$this->isAllowed($managers, $managersEntity)) {
+        if (!$this->isAllowed($adminIdentity, $managers, $managersEntity)) {
             return;
         }
 
@@ -64,12 +65,13 @@ class TrackingDocumentController extends AbstractController
      * Оновлює tracking документ з API
      */
     public function updateTrackingDocument(
+        AdminIdentity $adminIdentity,
         NovaPoshtaApiHelper $novaPoshtaApiHelper,
         NovaPoshtaDocumentService $documentService,
         Managers $managers,
         ManagersEntity $managersEntity
     ) {
-        if (!$this->isAllowed($managers, $managersEntity)) {
+        if (!$this->isAllowed($adminIdentity, $managers, $managersEntity)) {
             return;
         }
 
@@ -141,11 +143,12 @@ class TrackingDocumentController extends AbstractController
      * Для статусу 2 можна видаляти з БД без перевірки (накладна вже видалена в НП)
      */
     public function removeDocument(
+        AdminIdentity $adminIdentity,
         NovaPoshtaApiHelper $novaPoshtaApiHelper,
         Managers $managers,
         ManagersEntity $managersEntity
     ) {
-        if (!$this->isAllowed($managers, $managersEntity)) {
+        if (!$this->isAllowed($adminIdentity, $managers, $managersEntity)) {
             return;
         }
 
@@ -306,12 +309,16 @@ class TrackingDocumentController extends AbstractController
      * або видалити експрес-накладну для довільного замовлення — це реальні
      * гроші й реальні виклики до API Нової Пошти.
      *
-     * Логін менеджера береться через Engine: там, де сесії вітрини й адмінки
-     * розділені на різні куки, $_SESSION['admin'] тут порожній завжди.
+     * Звідки береться логін менеджера, вирішує AdminIdentity: рушії
+     * зберігають бекендову сесію по-різному.
      */
-    private function isAllowed(Managers $managers, ManagersEntity $managersEntity): bool
+    private function isAllowed(
+        AdminIdentity $adminIdentity,
+        Managers $managers,
+        ManagersEntity $managersEntity
+    ): bool
     {
-        $adminLogin = Engine::adminLogin();
+        $adminLogin = $adminIdentity->login();
         if (empty($adminLogin)) {
             $this->response->setStatusCode(401);
             $this->jsonError('Unauthorized');

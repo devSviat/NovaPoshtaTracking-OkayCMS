@@ -21,8 +21,20 @@ use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaStatusHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentCronHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Services\NovaPoshtaDocumentService;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\AdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\SeparateSessionAdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\SharedSessionAdminIdentity;
 
 return [
+    // Композиційний корінь: рушій визначається один раз, тут. Далі
+    // контролери працюють з портом і про різницю не знають. За номером
+    // версії рушії не розрізнити — обидва звуть себе 4.5.2.
+    AdminIdentity::class => [
+        'class' => class_exists('Okay\\Core\\Security\\SessionNames')
+            ? SeparateSessionAdminIdentity::class
+            : SharedSessionAdminIdentity::class,
+        'arguments' => [],
+    ],
     BackendExtender::class => [
         'class' => BackendExtender::class,
         'arguments' => [
