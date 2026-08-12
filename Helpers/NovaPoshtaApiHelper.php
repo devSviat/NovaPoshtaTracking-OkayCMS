@@ -57,10 +57,9 @@ class NovaPoshtaApiHelper
 
     public static function closeCurlHandle()
     {
-        if (self::$curlHandle !== null) {
-            curl_close(self::$curlHandle);
-            self::$curlHandle = null;
-        }
+        // curl_close() з PHP 8.0 нічого не робить, а з 8.5 ще й deprecated:
+        // хендл звільняє GC, щойно зникне остання посилання на нього.
+        self::$curlHandle = null;
     }
 
     /** Контактна особа контрагента за Ref */

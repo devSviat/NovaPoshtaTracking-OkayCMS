@@ -9,33 +9,19 @@ use Okay\Admin\Requests\BackendOrdersRequest;
 use Okay\Core\Modules\AbstractInit;
 use Okay\Core\Modules\EntityField;
 use Okay\Core\Scheduler\Schedule;
-use Okay\Core\ServiceLocator;
 use Okay\Entities\OrdersEntity;
 use Okay\Helpers\OrdersHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
-use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\Engine;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Entities\NovaPoshtaTrackingEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\BackendExtender;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\FrontExtender;
 use Okay\Modules\Sviat\NovaPoshtaTracking\ExtendsEntities\OrdersEntityExtend;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentCronHelper;
-use Psr\Log\LoggerInterface;
 
 class Init extends AbstractInit
 {
-    /**
-     * Модуль розширює таблицю й сутності OkayCMS/NovaposhtaCost. Без нього
-     * перше ж звертання до NPCostDeliveryDataEntity — фатал: в install() на
-     * половині доданих колонок, в init() — на кожному запиті до сайту.
-     */
-    private const REQUIRES = ['OkayCMS/NovaposhtaCost'];
-
     public function install()
     {
-        if ($this->requirementsUnmet(true)) {
-            return;
-        }
-
         $this->setBackendMainController('NovaPoshtaAdmin');
 
         // Поля NPCostDeliveryDataEntity (розширення таблиці з OkayCMS NovaposhtaCost)
@@ -90,12 +76,6 @@ class Init extends AbstractInit
 
     public function init()
     {
-        // Без логування: init() виконується на кожному запиті, і рядок помилки
-        // тут перетворив би лог на суцільний шум. Гучно про це каже install().
-        if ($this->requirementsUnmet(false)) {
-            return;
-        }
-
         $this->registerEntityField(NPCostDeliveryDataEntity::class, 'payer_type');
         $this->registerEntityField(NPCostDeliveryDataEntity::class, 'payment_method');
         $this->registerEntityField(NPCostDeliveryDataEntity::class, 'cargo_type');
@@ -179,24 +159,6 @@ class Init extends AbstractInit
                 ->overlap(false)
                 ->timeout(1800)
         );
-    }
-
-    private function requirementsUnmet(bool $log): bool
-    {
-        $missing = Engine::missing(self::REQUIRES);
-
-        if (empty($missing)) {
-            return false;
-        }
-
-        if ($log) {
-            ServiceLocator::getInstance()
-                ->getService(LoggerInterface::class)
-                ->error('Sviat/NovaPoshtaTracking: не встановлено ' . implode(', ', $missing)
-                    . ' — модуль лишається неактивним');
-        }
-
-        return true;
     }
 
     /**

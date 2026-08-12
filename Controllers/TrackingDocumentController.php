@@ -3,6 +3,9 @@
 namespace Okay\Modules\Sviat\NovaPoshtaTracking\Controllers;
 
 use Okay\Controllers\AbstractController;
+use Okay\Core\Managers;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\Engine;
+use Okay\Entities\ManagersEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Services\NovaPoshtaDocumentService;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Entities\NovaPoshtaTrackingEntity;
@@ -13,11 +16,21 @@ use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentFormatter;
 class TrackingDocumentController extends AbstractController
 {
     use TrackingDocumentFormatter;
+
+    /** Те саме право, що й у NovaPoshtaAdmin (див. Init). */
+    private const PERMISSION = 'orders';
     /**
      * Генерація експрес-накладної через API Нової Пошти
      */
-    public function generateDocument(NovaPoshtaDocumentService $documentService)
-    {
+    public function generateDocument(
+        NovaPoshtaDocumentService $documentService,
+        Managers $managers,
+        ManagersEntity $managersEntity
+    ) {
+        if (!$this->isAllowed($managers, $managersEntity)) {
+            return;
+        }
+
         try {
             $orderId = $this->request->get('order_id', 'int') ?: $this->request->post('order_id', 'int');
             if (!$orderId) {
@@ -50,8 +63,16 @@ class TrackingDocumentController extends AbstractController
     /**
      * Оновлює tracking документ з API
      */
-    public function updateTrackingDocument(NovaPoshtaApiHelper $novaPoshtaApiHelper, NovaPoshtaDocumentService $documentService)
-    {
+    public function updateTrackingDocument(
+        NovaPoshtaApiHelper $novaPoshtaApiHelper,
+        NovaPoshtaDocumentService $documentService,
+        Managers $managers,
+        ManagersEntity $managersEntity
+    ) {
+        if (!$this->isAllowed($managers, $managersEntity)) {
+            return;
+        }
+
         try {
             $orderId = $this->request->post('order_id', 'int');
             
@@ -119,8 +140,15 @@ class TrackingDocumentController extends AbstractController
      * Захист: для статусу 1 видаляємо з БД тільки після успішного видалення через API
      * Для статусу 2 можна видаляти з БД без перевірки (накладна вже видалена в НП)
      */
-    public function removeDocument(NovaPoshtaApiHelper $novaPoshtaApiHelper)
-    {
+    public function removeDocument(
+        NovaPoshtaApiHelper $novaPoshtaApiHelper,
+        Managers $managers,
+        ManagersEntity $managersEntity
+    ) {
+        if (!$this->isAllowed($managers, $managersEntity)) {
+            return;
+        }
+
         try {
             $orderId = $this->request->get('order_id', 'int');
             $trackingEntity = $this->entityFactory->get(NovaPoshtaTrackingEntity::class);
@@ -270,5 +298,33 @@ class TrackingDocumentController extends AbstractController
         } else {
             $this->response->setContent(json_encode(['error' => $message]), RESPONSE_JSON);
         }
+    }
+
+    /**
+     * Маршрути цих методів оголошені з to_front, тобто запит іде через вітрину
+     * повз авторизацію backend/index.php. Без перевірки будь-хто міг створити
+     * або видалити експрес-накладну для довільного замовлення — це реальні
+     * гроші й реальні виклики до API Нової Пошти.
+     *
+     * Логін менеджера береться через Engine: там, де сесії вітрини й адмінки
+     * розділені на різні куки, $_SESSION['admin'] тут порожній завжди.
+     */
+    private function isAllowed(Managers $managers, ManagersEntity $managersEntity): bool
+    {
+        $adminLogin = Engine::adminLogin();
+        if (empty($adminLogin)) {
+            $this->response->setStatusCode(401);
+            $this->jsonError('Unauthorized');
+            return false;
+        }
+
+        $manager = $managersEntity->get($adminLogin);
+        if (empty($manager) || !$managers->access(self::PERMISSION, $manager)) {
+            $this->response->setStatusCode(403);
+            $this->jsonError('Access denied');
+            return false;
+        }
+
+        return true;
     }
 }

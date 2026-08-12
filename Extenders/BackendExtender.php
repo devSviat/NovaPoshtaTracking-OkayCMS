@@ -106,7 +106,7 @@ class BackendExtender implements ExtensionInterface
                     $deliveriesEntity = $this->entityFactory->get(DeliveriesEntity::class);
                     $delivery = $deliveriesEntity->get($dataOrdersEntity->delivery_id);
                     if ($delivery) {
-                        $delivery->settings = unserialize($delivery->settings);
+                        $delivery->settings = unserialize($delivery->settings, ['allowed_classes' => [\stdClass::class]]);
                         $this->design->assign('delivery', $delivery);
                     }
                 }
@@ -151,7 +151,7 @@ class BackendExtender implements ExtensionInterface
             $deliveriesEntity = $this->entityFactory->get(DeliveriesEntity::class);
             $delivery = $deliveriesEntity->get($dataOrdersEntity->delivery_id);
             if ($delivery) {
-                $delivery->settings = unserialize($delivery->settings);
+                $delivery->settings = unserialize($delivery->settings, ['allowed_classes' => [\stdClass::class]]);
                 $this->design->assign('delivery', $delivery);
             }
         }
@@ -302,7 +302,7 @@ class BackendExtender implements ExtensionInterface
                     $deliveriesEntity = $this->entityFactory->get(DeliveriesEntity::class);
                     $delivery = $deliveriesEntity->get($order->delivery_id);
                     if ($delivery) {
-                        $delivery->settings = unserialize($delivery->settings);
+                        $delivery->settings = unserialize($delivery->settings, ['allowed_classes' => [\stdClass::class]]);
                         $this->design->assign('delivery', $delivery);
                     }
                 }
