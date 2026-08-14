@@ -47,6 +47,11 @@
 composer update giggsey/libphonenumber-for-php
 ```
 
+## Тести
+
+Модуль має набір модульних тестів. Як їх запустити й як дописати свій —
+[tests/README.md](tests/README.md).
+
 ## Ліцензія
 
 Модуль розповсюджується за вільною ліцензією MIT

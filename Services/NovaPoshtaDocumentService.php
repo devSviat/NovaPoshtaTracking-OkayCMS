@@ -677,7 +677,7 @@ class NovaPoshtaDocumentService
 
         if (!empty($delivery->settings)) {
             try {
-                $unserialized = unserialize($delivery->settings);
+                $unserialized = unserialize($delivery->settings, ['allowed_classes' => [\stdClass::class]]);
                 $delivery->settings = is_array($unserialized) ? $unserialized : [];
             } catch (\Exception $e) {
                 $delivery->settings = [];
