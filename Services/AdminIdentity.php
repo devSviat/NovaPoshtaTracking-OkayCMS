@@ -1,6 +1,6 @@
 <?php
 
-namespace Okay\Modules\Sviat\NovaPoshtaTracking\Compat;
+namespace Okay\Modules\Sviat\NovaPoshtaTracking\Services;
 
 /**
  * Логін менеджера, залогіненого в адмінці, або null.

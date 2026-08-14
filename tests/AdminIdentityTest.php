@@ -2,8 +2,8 @@
 
 namespace Modules\Sviat\NovaPoshtaTracking;
 
-use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\AdminIdentity;
-use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\SharedSessionAdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Services\AdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Services\SharedSessionAdminIdentity;
 use PHPUnit\Framework\TestCase;
 
 /**

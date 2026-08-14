@@ -20,10 +20,10 @@ use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\FrontExtender;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaStatusHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentCronHelper;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Services\AdminIdentity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Services\NovaPoshtaDocumentService;
-use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\AdminIdentity;
-use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\SeparateSessionAdminIdentity;
-use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\SharedSessionAdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Services\SeparateSessionAdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Services\SharedSessionAdminIdentity;
 
 return [
     // Композиційний корінь: рушій визначається один раз, тут. Далі

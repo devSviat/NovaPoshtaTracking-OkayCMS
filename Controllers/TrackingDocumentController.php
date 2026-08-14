@@ -4,7 +4,7 @@ namespace Okay\Modules\Sviat\NovaPoshtaTracking\Controllers;
 
 use Okay\Controllers\AbstractController;
 use Okay\Core\Managers;
-use Okay\Modules\Sviat\NovaPoshtaTracking\Compat\AdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Services\AdminIdentity;
 use Okay\Entities\ManagersEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Services\NovaPoshtaDocumentService;

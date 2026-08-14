@@ -1,6 +1,6 @@
 <?php
 
-namespace Okay\Modules\Sviat\NovaPoshtaTracking\Compat;
+namespace Okay\Modules\Sviat\NovaPoshtaTracking\Services;
 
 /**
  * Рушій з однією сесією на вітрину й адмінку: логін менеджера лежить
