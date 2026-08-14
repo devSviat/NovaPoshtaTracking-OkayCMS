@@ -2,14 +2,37 @@
 
 namespace Okay\Modules\Sviat\NovaPoshtaTracking\Services;
 
+use Okay\Core\Security\SessionNames;
+
 /**
  * Логін менеджера, залогіненого в адмінці, або null.
  *
- * Порт: єдине місце, де модуль залежить від того, як рушій зберігає бекендову
- * сесію. Реалізацію обирає Init/services.php — один раз і за можливостями,
- * бо за номером версії рушії не розрізнити: обидва звуть себе 4.5.2.
+ * Потрібен там, де маршрут оголошений з to_front: запит іде через вітрину повз
+ * авторизацію бекенду, тож модуль перевіряє доступ сам.
+ *
+ * Рушії зберігають бекендову сесію по-різному. Де вітрина й адмінка ділять одну
+ * сесію, логін лежить у $_SESSION['admin']. Де в адмінки власна кука, сесія
+ * вітрини її не бачить узагалі — там логін читає ядро.
  */
-interface AdminIdentity
+class AdminIdentity
 {
-    public function login(): ?string;
+    public function login(): ?string
+    {
+        if ($this->hasSeparateBackendSession()) {
+            return SessionNames::adminLogin();
+        }
+
+        $login = $_SESSION['admin'] ?? null;
+
+        return is_string($login) && $login !== '' ? $login : null;
+    }
+
+    /**
+     * Окремим методом, щоб обидві гілки були перевірімі: наявність класу —
+     * глобальний стан процесу, і в тесті його не підмінити.
+     */
+    protected function hasSeparateBackendSession(): bool
+    {
+        return class_exists(SessionNames::class);
+    }
 }
