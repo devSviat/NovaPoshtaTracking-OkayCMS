@@ -2,13 +2,13 @@
 
 namespace Modules\Sviat\NovaPoshtaTracking;
 
+use Okay\Core\Security\SessionNames;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Security\AdminIdentity;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Перевіряється гілка спільної сесії — уся логіка, яка може помилитися, саме
- * в ній. Друга гілка делегує читання ядру, власної логіки не має, а підняти
- * чужу бекендову сесію в модульному тесті неможливо.
+ * Обидві гілки вибору джерела логіна. Гілка спільної сесії перевіряється на
+ * будь-якому рушії; гілка ядра — лише там, де клас ядра є.
  */
 class AdminIdentityTest extends TestCase
 {
@@ -73,5 +73,50 @@ class AdminIdentityTest extends TestCase
             'не рядок'       => [['admin' => 0]],
             'масив'          => [['admin' => ['x']]],
         ];
+    }
+
+    /**
+     * Рушій з окремою бекендовою сесією: логін приходить від ядра, а
+     * $_SESSION['admin'] вітрини ігнорується — під час to_front-запиту він
+     * порожній або, гірше, чужий.
+     *
+     * Шимів сумісності тут немає навмисно: на стоці тест не виконується, а
+     * розбирається файл однаково на обох рушіях.
+     */
+    public function testBackendSessionWinsOverTheStorefrontOne(): void
+    {
+        if (!class_exists(SessionNames::class)) {
+            self::markTestSkipped('рушій тримає одну сесію на вітрину й адмінку');
+        }
+
+        $_SESSION = ['admin' => 'storefront'];
+
+        self::assertSame('backend', $this->withCoreLogin('backend'));
+        self::assertNull($this->withCoreLogin(null));
+    }
+
+    /**
+     * Ядро запам'ятовує логін у статичних полях, і index.php наповнює їх до
+     * старту сесії вітрини. Тест стає на місце цього кроку й повертає стан
+     * назад, бо статика переживає тест.
+     */
+    private function withCoreLogin(?string $login): ?string
+    {
+        $core    = new \ReflectionClass(SessionNames::class);
+        $checked = $core->getProperty('adminChecked');
+        $stored  = $core->getProperty('adminLogin');
+
+        $previousChecked = $checked->getValue();
+        $previousLogin   = $stored->getValue();
+
+        $checked->setValue(null, true);
+        $stored->setValue(null, $login);
+
+        try {
+            return (new AdminIdentity())->login();
+        } finally {
+            $checked->setValue(null, $previousChecked);
+            $stored->setValue(null, $previousLogin);
+        }
     }
 }

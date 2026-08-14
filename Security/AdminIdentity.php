@@ -16,6 +16,12 @@ use Okay\Core\Security\SessionNames;
  */
 class AdminIdentity
 {
+    /**
+     * Гілка ядра тримається на тому, що рушій читає бекендову сесію ДО старту
+     * вітринної й запам'ятовує логін: при вже активній сесії SessionNames
+     * навмисне віддає null. Зникне той крок із index.php — маршрути почнуть
+     * віддавати 401 залогіненому менеджеру, і мовчки.
+     */
     public function login(): ?string
     {
         if ($this->hasSeparateBackendSession()) {
