@@ -2,17 +2,13 @@
 
 namespace Modules\Sviat\NovaPoshtaTracking;
 
-use Okay\Modules\Sviat\NovaPoshtaTracking\Services\AdminIdentity;
-use Okay\Modules\Sviat\NovaPoshtaTracking\Services\SharedSessionAdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Security\AdminIdentity;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Логін менеджера для рушія з однією сесією.
- *
- * Другий адаптер (окрема бекендова сесія) тут не перевіряється свідомо: у
- * ньому немає власної логіки — лише делегування ядру, яке саме читає чужу
- * сесію. Перевіряти нічого, а підняти таку сесію в модульному тесті
- * неможливо. Вся логіка, яка може помилитися, зібрана в цьому адаптері.
+ * Перевіряється гілка спільної сесії — уся логіка, яка може помилитися, саме
+ * в ній. Друга гілка делегує читання ядру, власної логіки не має, а підняти
+ * чужу бекендову сесію в модульному тесті неможливо.
  */
 class AdminIdentityTest extends TestCase
 {
@@ -32,16 +28,22 @@ class AdminIdentityTest extends TestCase
         }
     }
 
-    public function testAdapterFulfilsThePort(): void
+    /** Рушій зі спільною сесією — незалежно від того, на якому йде прогін. */
+    private function sharedSession(): AdminIdentity
     {
-        self::assertInstanceOf(AdminIdentity::class, new SharedSessionAdminIdentity());
+        return new class extends AdminIdentity {
+            protected function hasSeparateBackendSession(): bool
+            {
+                return false;
+            }
+        };
     }
 
     public function testLoginIsReadFromTheSession(): void
     {
         $_SESSION = ['admin' => 'manager'];
 
-        self::assertSame('manager', (new SharedSessionAdminIdentity())->login());
+        self::assertSame('manager', $this->sharedSession()->login());
     }
 
     /**
@@ -59,17 +61,17 @@ class AdminIdentityTest extends TestCase
             $_SESSION = $session;
         }
 
-        self::assertNull((new SharedSessionAdminIdentity())->login());
+        self::assertNull($this->sharedSession()->login());
     }
 
     public static function notLoggedIn(): array
     {
         return [
-            'сесії немає'        => [null],
-            'ключа немає'        => [[]],
-            'порожній рядок'     => [['admin' => '']],
-            'не рядок'           => [['admin' => 0]],
-            'масив'              => [['admin' => ['x']]],
+            'сесії немає'    => [null],
+            'ключа немає'    => [[]],
+            'порожній рядок' => [['admin' => '']],
+            'не рядок'       => [['admin' => 0]],
+            'масив'          => [['admin' => ['x']]],
         ];
     }
 }
