@@ -20,7 +20,7 @@ use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\FrontExtender;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaStatusHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentCronHelper;
-use Okay\Modules\Sviat\NovaPoshtaTracking\Services\AdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Security\AdminIdentity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Services\NovaPoshtaDocumentService;
 
 return [

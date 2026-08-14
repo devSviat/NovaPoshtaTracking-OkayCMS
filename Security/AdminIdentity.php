@@ -1,6 +1,6 @@
 <?php
 
-namespace Okay\Modules\Sviat\NovaPoshtaTracking\Services;
+namespace Okay\Modules\Sviat\NovaPoshtaTracking\Security;
 
 use Okay\Core\Security\SessionNames;
 

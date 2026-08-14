@@ -2,7 +2,7 @@
 
 namespace Modules\Sviat\NovaPoshtaTracking;
 
-use Okay\Modules\Sviat\NovaPoshtaTracking\Services\AdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Security\AdminIdentity;
 use PHPUnit\Framework\TestCase;
 
 /**
