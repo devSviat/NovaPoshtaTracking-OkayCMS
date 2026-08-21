@@ -62,6 +62,82 @@ class TrackingDocumentController extends AbstractController
     }
 
     /**
+     * Привʼязує до замовлення накладну, виписану вручну на сайті Нової Пошти.
+     *
+     * Запис лягає тим самим шляхом, що й створений кнопкою, тож статуси,
+     * масові дії й колонка ТТН в експорті замовлень бачать її як свою.
+     */
+    public function attachDocument(
+        AdminIdentity $adminIdentity,
+        NovaPoshtaDocumentService $documentService,
+        Managers $managers,
+        ManagersEntity $managersEntity
+    ) {
+        if (!$this->isAllowed($adminIdentity, $managers, $managersEntity)) {
+            return;
+        }
+
+        try {
+            $orderId = $this->request->post('order_id', 'int');
+            if (!$orderId) {
+                $this->jsonError('Order ID is required', false);
+                return;
+            }
+
+            $intDocNumber = NovaPoshtaDocumentService::normalizeDocumentNumber(
+                (string) $this->request->post('int_doc_number')
+            );
+            if ($intDocNumber === null) {
+                $this->jsonError('invalid_number', false);
+                return;
+            }
+
+            // Замінювати наявну накладну не даємо: помилка друку тихо розірвала
+            // б звʼязок із посилкою, яку вже везуть. Спершу відвʼязати.
+            $trackingEntity = $this->entityFactory->get(NovaPoshtaTrackingEntity::class);
+            $existing = $trackingEntity->findOne(['order_id' => $orderId]);
+            if (!empty($existing->int_doc_number)) {
+                $this->jsonError('already_attached:' . $existing->int_doc_number, false);
+                return;
+            }
+
+            $ordersEntity = $this->entityFactory->get(OrdersEntity::class);
+            $order = $ordersEntity->get($orderId);
+            if (!$order) {
+                $this->jsonError('Order not found', false);
+                return;
+            }
+
+            // Телефон на цей запит не впливає - Нова Пошта віддає накладну і з
+            // чужим, і з порожнім. Передаємо той, що в замовленні, лише щоб
+            // відповідь була повною там, де він збігається.
+            $phoneFormatted = (string) ($this->formatPhone($order->phone ?? '') ?? '');
+
+            $trackingDocument = $documentService->fetchTrackingFromApi($intDocNumber, $phoneFormatted);
+
+            // Неіснуючий номер повертається успішно, зі статусом «не знайдено»,
+            // тож без цієї перевірки в базі осіла б накладна, якої немає.
+            if (NovaPoshtaDocumentService::isUnknownDocument($trackingDocument)) {
+                $this->jsonError('not_found_in_np', false);
+                return;
+            }
+
+            $documentService->saveTrackingData($orderId, $trackingDocument, $intDocNumber);
+
+            $result = ['success' => true, 'int_doc_number' => $intDocNumber, 'tracking_document' => $trackingDocument];
+            $result['tracking_document'] = $this->renderTrackingDocument($result, $orderId);
+
+            $this->response->setContentType(RESPONSE_JSON);
+            $this->response->sendHeaders();
+            $this->response->sendStream(json_encode($result), RESPONSE_JSON);
+            exit;
+        } catch (\Exception $e) {
+            error_log('TrackingDocumentController::attachDocument error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
+            $this->jsonError('Internal Server Error: ' . $e->getMessage(), false);
+        }
+    }
+
+    /**
      * Оновлює tracking документ з API
      */
     public function updateTrackingDocument(

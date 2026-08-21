@@ -164,3 +164,14 @@ $lang['sviat__novaposhta_tracking__success_done'] = 'Виконано успіш
 
 // Масове створення ТТН — повідомлення з помилками
 $lang['sviat__novaposhta_tracking__mass_done_with_errors'] = 'Виконано %s, успішно %s, помилки в %s';
+
+// document_form.tpl — привʼязування накладної, виписаної вручну
+$lang['sviat__novaposhta_tracking__attach_hint'] = 'Накладну вже виписано вручну? Введіть її номер.';
+$lang['sviat__novaposhta_tracking__attach_placeholder'] = 'Номер накладної, 14 цифр';
+$lang['sviat__novaposhta_tracking__btn_attach_invoice'] = 'Прив\'язати накладну';
+$lang['sviat__novaposhta_tracking__attaching'] = 'Прив\'язуємо…';
+$lang['sviat__novaposhta_tracking__attach_success'] = 'Накладну %s прив\'язано';
+$lang['sviat__novaposhta_tracking__attach_already'] = 'У замовленні вже є накладна %s. Спершу відвʼяжіть її.';
+$lang['sviat__novaposhta_tracking__attach_not_found'] = 'Нова Пошта не знає такої накладної. Перевірте номер.';
+$lang['sviat__novaposhta_tracking__attach_invalid'] = 'Номер накладної — це рівно 14 цифр.';
+$lang['sviat__novaposhta_tracking__attach_confirm'] = 'Привʼязати';

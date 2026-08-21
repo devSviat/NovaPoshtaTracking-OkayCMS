@@ -375,3 +375,29 @@
     padding: 2px 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
+
+/* Створення й привʼязування — рівнозначні дії, тож стоять поруч, а не одна
+   під одною. flex-wrap лишає їх читабельними у вузькій правій колонці. */
+.np-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.np-attach__row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+/* Поле забирає решту рядка, кнопка лишається по своєму вмісту. */
+.np-attach__input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.np-attach__button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
