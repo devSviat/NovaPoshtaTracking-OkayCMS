@@ -649,12 +649,13 @@
                                 lockDocumentButtons();
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
                                 
-                                toastr.success(window.npDocumentFormT.invoice_created.replace('%s', data.int_doc_number || ''), window.npDocumentFormT.success);
+                                toastr.success(window.npDocumentFormT.invoice_created.replace('%s', escapeHtml(data.int_doc_number)), window.npDocumentFormT.success);
                                 setTimeout(() => location.reload(), 1500);
                             } else if (data.error) {
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
+                                // Рядок уже екранований — .text() показав би сутності.
                                 var message = attachErrorText(data.error);
-                                $('.fn_error').text(message).removeClass('hidden');
+                                $('.fn_error').html(message).removeClass('hidden');
                                 toastr.error(message, window.npDocumentFormT.error);
                             } else {
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
@@ -663,7 +664,7 @@
                         },
                         error: function(xhr, status, errorThrown) {
                             toggleLoading($button, $buttonText, $buttonLoader, false);
-                            toastr.error(window.npDocumentFormT.create_error.replace('%s', errorThrown), window.npDocumentFormT.error);
+                            toastr.error(window.npDocumentFormT.create_error.replace('%s', escapeHtml(errorThrown)), window.npDocumentFormT.error);
                         }
                     });
                 });
@@ -707,7 +708,7 @@
                             if (data && data.success) {
                                 $input.val('');
                                 toastr.success(
-                                    window.npDocumentFormT.attach_done.replace('%s', data.int_doc_number || ''),
+                                    window.npDocumentFormT.attach_done.replace('%s', escapeHtml(data.int_doc_number)),
                                     window.npDocumentFormT.success
                                 );
                                 lockDocumentButtons();
@@ -723,7 +724,7 @@
                             toastr.error(
                                 payload && payload.error
                                     ? attachErrorText(payload.error)
-                                    : window.npDocumentFormT.create_error.replace('%s', errorThrown),
+                                    : window.npDocumentFormT.create_error.replace('%s', escapeHtml(errorThrown)),
                                 window.npDocumentFormT.error
                             );
                         }
@@ -749,6 +750,17 @@
                     window.location.reload();
                 }
 
+                // toastr показує повідомлення як HTML (escapeHtml у нього вимкнений),
+                // а сюди підставляються значення з відповіді сервера.
+                function escapeHtml(value) {
+                    return String(value == null ? '' : value)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                }
+
                 // Накладна в замовленні одна, тож після неї обидві дії закриті.
                 function lockDocumentButtons() {
                     $('#fn_generate_document, #fn_attach_toggle')
@@ -762,10 +774,10 @@
                     var text = String(code || '');
 
                     if (text.indexOf('already_attached:') === 0) {
-                        return window.npDocumentFormT.attach_exists.replace('%s', text.slice('already_attached:'.length));
+                        return window.npDocumentFormT.attach_exists.replace('%s', escapeHtml(text.slice('already_attached:'.length)));
                     }
                     if (text.indexOf('attached_elsewhere:') === 0) {
-                        return window.npDocumentFormT.attach_elsewhere.replace('%s', text.slice('attached_elsewhere:'.length));
+                        return window.npDocumentFormT.attach_elsewhere.replace('%s', escapeHtml(text.slice('attached_elsewhere:'.length)));
                     }
                     if (text === 'not_found_in_np') {
                         return window.npDocumentFormT.attach_not_found;
@@ -774,7 +786,7 @@
                         return window.npDocumentFormT.attach_invalid;
                     }
 
-                    return text || window.npDocumentFormT.unknown_error;
+                    return escapeHtml(text) || window.npDocumentFormT.unknown_error;
                 }
             </script>
         {/literal}
