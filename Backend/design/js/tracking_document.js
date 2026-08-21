@@ -190,7 +190,7 @@
             // Видаляємо попередні обробники та додаємо новий
             $(document).off('click.removeDocument', '.fn_submit_delete')
                 .on('click.removeDocument', '.fn_submit_delete', () => {
-                    $('#fn_action_modal').modal('hide');
+                    $('#fn_action_modal').find('[data-dismiss="modal"]').first().trigger('click');
                     $button.prop('disabled', true).addClass('disabled');
                     this.removeDocument(orderId, statusCode, $button);
                 });

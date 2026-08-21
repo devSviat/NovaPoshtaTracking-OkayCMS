@@ -375,3 +375,29 @@
     padding: 2px 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
+
+/* Створення й привʼязування — рівнозначні дії, тож стоять поруч; wrap рятує
+   їх у вузькій правій колонці. */
+.np-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.np-attach__row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.np-attach__input {
+    flex: 1 1 auto;
+    /* Без цього типове min-width: auto не дає полю стиснутись, і рядок їде. */
+    min-width: 0;
+}
+
+.np-attach__button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}

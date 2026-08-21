@@ -62,6 +62,89 @@ class TrackingDocumentController extends AbstractController
     }
 
     /**
+     * Привʼязує до замовлення накладну, виписану вручну на сайті Нової Пошти.
+     *
+     * Запис лягає тим самим шляхом, що й створений кнопкою, тож статуси,
+     * масові дії й колонка ТТН в експорті замовлень бачать її як свою.
+     */
+    public function attachDocument(
+        AdminIdentity $adminIdentity,
+        NovaPoshtaDocumentService $documentService,
+        Managers $managers,
+        ManagersEntity $managersEntity
+    ) {
+        if (!$this->isAllowed($adminIdentity, $managers, $managersEntity)) {
+            return;
+        }
+
+        try {
+            $orderId = $this->request->post('order_id', 'int');
+            if (!$orderId) {
+                $this->jsonError('Order ID is required', false);
+                return;
+            }
+
+            $intDocNumber = NovaPoshtaDocumentService::normalizeDocumentNumber(
+                (string) $this->request->post('int_doc_number', 'string')
+            );
+            if ($intDocNumber === null) {
+                $this->jsonError('invalid_number', false);
+                return;
+            }
+
+            // Замінювати наявну накладну не даємо: помилка друку тихо розірвала
+            // б звʼязок із посилкою, яку вже везуть. Спершу відвʼязати.
+            $trackingEntity = $this->entityFactory->get(NovaPoshtaTrackingEntity::class);
+            $existing = $trackingEntity->findOne(['order_id' => $orderId]);
+            if (!empty($existing->int_doc_number)) {
+                $this->jsonError('already_attached:' . $existing->int_doc_number, false);
+                return;
+            }
+
+            // Створена з адмінки накладна унікальна за побудовою, набрана вручну —
+            // ні: та сама посилка в двох замовленнях розсинхронить їхні статуси.
+            $duplicate = $trackingEntity->findOne(['int_doc_number' => $intDocNumber]);
+            if (!empty($duplicate->order_id) && (int) $duplicate->order_id !== $orderId) {
+                $this->jsonError('attached_elsewhere:' . (int) $duplicate->order_id, false);
+                return;
+            }
+
+            $ordersEntity = $this->entityFactory->get(OrdersEntity::class);
+            $order = $ordersEntity->get($orderId);
+            if (!$order) {
+                $this->jsonError('Order not found', false);
+                return;
+            }
+
+            // Нова Пошта віддає накладну і з чужим телефоном, і з порожнім;
+            // свій передаємо лише заради повнішої відповіді.
+            $phoneFormatted = (string) ($this->formatPhone($order->phone ?? '') ?? '');
+
+            $trackingDocument = $documentService->fetchTrackingFromApi($intDocNumber, $phoneFormatted);
+
+            if (NovaPoshtaDocumentService::isUnknownDocument($trackingDocument)) {
+                $this->jsonError('not_found_in_np', false);
+                return;
+            }
+
+            $documentService->saveTrackingData($orderId, $trackingDocument, $intDocNumber);
+
+            // Сирий документ виглядає зайвим, але з нього рендериться блок,
+            // який тут же стає на його місце.
+            $result = ['success' => true, 'int_doc_number' => $intDocNumber, 'tracking_document' => $trackingDocument];
+            $result['tracking_document'] = $this->renderTrackingDocument($result, $orderId);
+
+            $this->response->setContentType(RESPONSE_JSON);
+            $this->response->sendHeaders();
+            $this->response->sendStream(json_encode($result), RESPONSE_JSON);
+            exit;
+        } catch (\Exception $e) {
+            error_log('TrackingDocumentController::attachDocument error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
+            $this->jsonError('Internal Server Error: ' . $e->getMessage(), false);
+        }
+    }
+
+    /**
      * Оновлює tracking документ з API
      */
     public function updateTrackingDocument(

@@ -35,6 +35,10 @@ class NovaPoshtaDocumentService
     private const WAREHOUSE_MIN_VOLUME = 0.0004;
     private const WAREHOUSE_MIN_WEIGHT = 0.1;
     private const VOLUMETRIC_WEIGHT_COEFFICIENT = 250;
+    private const DOCUMENT_NUMBER_LENGTH = 14;
+
+    /** Статус, яким Нова Пошта відповідає на неіснуючий номер. */
+    private const STATUS_NOT_FOUND = '3';
 
     public function __construct(
         EntityFactory $entityFactory,
@@ -1510,6 +1514,37 @@ class NovaPoshtaDocumentService
     }
 
     /**
+     * Роздільники в наборі очікувані: номер переносять очима або копіюють із
+     * сайту Нової Пошти разом із пробілами й дефісами.
+     *
+     * @return string|null null, якщо це не номер накладної
+     */
+    public static function normalizeDocumentNumber(string $raw): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $raw) ?? '';
+
+        return strlen($digits) === self::DOCUMENT_NUMBER_LENGTH ? $digits : null;
+    }
+
+    /**
+     * На вигаданий номер API відповідає `success: true` і віддає документ зі
+     * статусом «Номер не знайдено», тож перевірка за `success` пропустила б
+     * помилку друку.
+     *
+     * @param object|null $document
+     */
+    public static function isUnknownDocument($document): bool
+    {
+        if (!is_object($document)) {
+            return true;
+        }
+
+        $statusCode = $document->StatusCode ?? null;
+
+        return $statusCode === null || (string) $statusCode === self::STATUS_NOT_FOUND;
+    }
+
+    /**
      * Отримує tracking документ з БД або API
      * 
      * @param int $orderId ID замовлення
@@ -1545,6 +1580,33 @@ class NovaPoshtaDocumentService
         }
 
         // Якщо даних немає в БД, завантажуємо з API
+        $trackingDocument = $this->fetchTrackingFromApi($intDocNumber, $phoneFormatted);
+
+        if ($trackingDocument === null) {
+            return null;
+        }
+
+        // Зберігаємо дані tracking в NovaPoshtaTrackingEntity
+        $this->saveTrackingData($orderId, $trackingDocument, $intDocNumber);
+
+        // Викликаємо callback для обогачення документа, якщо він переданий
+        if ($enrichCallback && is_callable($enrichCallback)) {
+            $enrichCallback($trackingDocument, ...$enrichArgs);
+        }
+
+        return $trackingDocument;
+    }
+
+    /**
+     * Винесено з getTrackingDocument(), бо той спершу віддає копію з бази й
+     * переданий номер ігнорує.
+     *
+     * Успішна відповідь ще не означає, що накладна існує — див. isUnknownDocument().
+     *
+     * @return object|null
+     */
+    public function fetchTrackingFromApi(string $intDocNumber, string $phoneFormatted)
+    {
         $request = [
             "apiKey" => $this->settings->get('newpost_key'),
             "modelName" => "TrackingDocument",
@@ -1573,17 +1635,7 @@ class NovaPoshtaDocumentService
             return null;
         }
 
-        $trackingDocument = $apiResponse->data[0];
-
-        // Зберігаємо дані tracking в NovaPoshtaTrackingEntity
-        $this->saveTrackingData($orderId, $trackingDocument, $intDocNumber);
-
-        // Викликаємо callback для обогачення документа, якщо він переданий
-        if ($enrichCallback && is_callable($enrichCallback)) {
-            $enrichCallback($trackingDocument, ...$enrichArgs);
-        }
-
-        return $trackingDocument;
+        return $apiResponse->data[0];
     }
 
     /**

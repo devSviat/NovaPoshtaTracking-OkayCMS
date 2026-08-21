@@ -448,18 +448,52 @@
                 success: "{$btr->sviat__novaposhta_tracking__success|escape:'javascript'}",
                 unknown_error: "{$btr->sviat__novaposhta_tracking__unknown_error|escape:'javascript'}",
                 error: "{$btr->sviat__novaposhta_tracking__error|escape:'javascript'}",
-                create_error: "{$btr->sviat__novaposhta_tracking__create_invoice_error|escape:'javascript'}"
+                create_error: "{$btr->sviat__novaposhta_tracking__create_invoice_error|escape:'javascript'}",
+                attach_done: "{$btr->sviat__novaposhta_tracking__attach_success|escape:'javascript'}",
+                attach_exists: "{$btr->sviat__novaposhta_tracking__attach_already|escape:'javascript'}",
+                attach_not_found: "{$btr->sviat__novaposhta_tracking__attach_not_found|escape:'javascript'}",
+                attach_elsewhere: "{$btr->sviat__novaposhta_tracking__attach_elsewhere|escape:'javascript'}",
+                attach_invalid: "{$btr->sviat__novaposhta_tracking__attach_invalid|escape:'javascript'}"
             };
         </script>
         <div class="fn_delivery_novaposhta" style="display: block;">
             <div class="fn_error hidden boxed boxed_warning"></div>
-            <button id="fn_generate_document" class="btn btn-info {if $novaposhta_delivery_data->ref_id} disabled{/if}">
-                <span class="btn-text">{$btr->sviat__novaposhta_tracking__btn_create_invoice|escape}</span>
-                <span class="btn-loader hidden">
-                    <span class="spinner"></span>
-                    <span class="loader-text">{$btr->sviat__novaposhta_tracking__creating|escape}</span>
-                </span>
-            </button>
+            {* Виписану вручну накладну треба не створювати, а привʼязати за
+               номером. Поле під кнопкою, бо потрібне рідше за створення. *}
+            <div class="np-actions">
+                <button id="fn_generate_document" class="btn btn-info {if $novaposhta_delivery_data->ref_id} disabled{/if}">
+                    <span class="btn-text">{$btr->sviat__novaposhta_tracking__btn_create_invoice|escape}</span>
+                    <span class="btn-loader hidden">
+                        <span class="spinner"></span>
+                        <span class="loader-text">{$btr->sviat__novaposhta_tracking__creating|escape}</span>
+                    </span>
+                </button>
+                <button id="fn_attach_toggle" type="button" class="btn btn_border_blue">
+                    {$btr->sviat__novaposhta_tracking__btn_attach_invoice|escape}
+                </button>
+            </div>
+
+            <div id="fn_attach_form" class="np-attach mt-1 hidden">
+                <div class="np-attach__label text-muted font_12 mb-h">
+                    {$btr->sviat__novaposhta_tracking__attach_hint|escape}
+                </div>
+                <div class="np-attach__row">
+                    <input type="text"
+                           id="fn_attach_document_number"
+                           class="form-control np-attach__input"
+                           inputmode="numeric"
+                           autocomplete="off"
+                           maxlength="20"
+                           placeholder="{$btr->sviat__novaposhta_tracking__attach_placeholder|escape}">
+                    <button id="fn_attach_document" type="button" class="btn btn-info np-attach__button">
+                        <span class="btn-text">{$btr->sviat__novaposhta_tracking__attach_confirm|escape}</span>
+                        <span class="btn-loader hidden">
+                            <span class="spinner"></span>
+                            <span class="loader-text">{$btr->sviat__novaposhta_tracking__attaching|escape}</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         {literal}
@@ -602,7 +636,7 @@
                         success: function(data) {
                             if (data.ref_id) {
                                 if (data.hasOwnProperty('tracking_document')) {
-                                    $('.tracking_document').html(data.tracking_document);
+                                    showTrackingDocument(data.tracking_document);
                                 }
                                 $('.fn_document_input')
                                     .text(data.int_doc_number)
@@ -631,6 +665,106 @@
                         }
                     });
                 });
+
+                $('#fn_attach_toggle').on('click', function () {
+                    var $form = $('#fn_attach_form');
+                    $form.toggleClass('hidden');
+                    if (!$form.hasClass('hidden')) {
+                        $('#fn_attach_document_number').trigger('focus');
+                    }
+                });
+
+                $('#fn_attach_document').on('click', function () {
+                    var $button = $(this);
+                    var $buttonText = $button.find('.btn-text');
+                    var $buttonLoader = $button.find('.btn-loader');
+                    var $input = $('#fn_attach_document_number');
+                    var number = String($input.val() || '').replace(/\D+/g, '');
+
+                    // Той самий рубіж, що й на сервері: рівно чотирнадцять цифр.
+                    if (number.length !== 14) {
+                        toastr.error(window.npDocumentFormT.attach_invalid, window.npDocumentFormT.error);
+                        $input.trigger('focus');
+                        return;
+                    }
+
+                    toggleLoading($button, $buttonText, $buttonLoader, true);
+
+                    $.ajax({
+                        type: 'POST',
+                        url: "{/literal}{url_generator route="Sviat_NovaPoshtaTracking_attachDocument" absolute=1}{literal}",
+                        dataType: 'json',
+                        data: {
+                            order_id: '{/literal}{$order->id}{literal}',
+                            int_doc_number: number,
+                            session_id: '{/literal}{$smarty.session.id}{literal}'
+                        },
+                        success: function (data) {
+                            toggleLoading($button, $buttonText, $buttonLoader, false);
+
+                            if (data && data.success) {
+                                $input.val('');
+                                toastr.success(
+                                    window.npDocumentFormT.attach_done.replace('%s', data.int_doc_number || ''),
+                                    window.npDocumentFormT.success
+                                );
+                                showTrackingDocument(data.tracking_document);
+                                return;
+                            }
+
+                            toastr.error(attachErrorText(data && data.error), window.npDocumentFormT.error);
+                        },
+                        error: function (xhr, status, errorThrown) {
+                            toggleLoading($button, $buttonText, $buttonLoader, false);
+                            var payload = xhr && xhr.responseJSON ? xhr.responseJSON : null;
+                            toastr.error(
+                                payload && payload.error
+                                    ? attachErrorText(payload.error)
+                                    : window.npDocumentFormT.create_error.replace('%s', errorThrown),
+                                window.npDocumentFormT.error
+                            );
+                        }
+                    });
+                });
+
+                /**
+                 * Показує щойно отриманий блок накладної.
+                 *
+                 * Поки ТТН немає, ядро не виводить ні блок, ні його обгортку,
+                 * тож html() у порожню вибірку мовчки нічого не робить — саме
+                 * тому накладна не зʼявлялась до перезавантаження сторінки.
+                 */
+                function showTrackingDocument(markup) {
+                    var $block = $('.tracking_document');
+
+                    if ($block.length && markup) {
+                        $block.html(markup);
+                        return;
+                    }
+
+                    // Вставляти нікуди: сторінка відрендерить блок сама.
+                    window.location.reload();
+                }
+
+                // Сервер віддає машинні коди, щоб не залежати від мови адмінки.
+                function attachErrorText(code) {
+                    var text = String(code || '');
+
+                    if (text.indexOf('already_attached:') === 0) {
+                        return window.npDocumentFormT.attach_exists.replace('%s', text.slice('already_attached:'.length));
+                    }
+                    if (text.indexOf('attached_elsewhere:') === 0) {
+                        return window.npDocumentFormT.attach_elsewhere.replace('%s', text.slice('attached_elsewhere:'.length));
+                    }
+                    if (text === 'not_found_in_np') {
+                        return window.npDocumentFormT.attach_not_found;
+                    }
+                    if (text === 'invalid_number') {
+                        return window.npDocumentFormT.attach_invalid;
+                    }
+
+                    return text || window.npDocumentFormT.unknown_error;
+                }
             </script>
         {/literal}
     {/if}

@@ -19,6 +19,14 @@ return [
             'method' => 'updateTrackingDocument',
         ],
     ],
+    'Sviat_NovaPoshtaTracking_attachDocument' => [
+        'slug' => 'backend/nova-poshta/ajax/attachDocument',
+        'to_front' => true,
+        'params' => [
+            'controller' => __NAMESPACE__ . '\Controllers\TrackingDocumentController',
+            'method' => 'attachDocument',
+        ],
+    ],
     'Sviat_NovaPoshtaTracking_removeDocument' => [
         'slug' => 'backend/nova-poshta/ajax/removeDocument',
         'to_front' => true,
