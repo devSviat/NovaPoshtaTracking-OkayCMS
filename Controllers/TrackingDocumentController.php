@@ -108,15 +108,12 @@ class TrackingDocumentController extends AbstractController
                 return;
             }
 
-            // Телефон на цей запит не впливає - Нова Пошта віддає накладну і з
-            // чужим, і з порожнім. Передаємо той, що в замовленні, лише щоб
-            // відповідь була повною там, де він збігається.
+            // Нова Пошта віддає накладну і з чужим телефоном, і з порожнім;
+            // свій передаємо лише заради повнішої відповіді.
             $phoneFormatted = (string) ($this->formatPhone($order->phone ?? '') ?? '');
 
             $trackingDocument = $documentService->fetchTrackingFromApi($intDocNumber, $phoneFormatted);
 
-            // Неіснуючий номер повертається успішно, зі статусом «не знайдено»,
-            // тож без цієї перевірки в базі осіла б накладна, якої немає.
             if (NovaPoshtaDocumentService::isUnknownDocument($trackingDocument)) {
                 $this->jsonError('not_found_in_np', false);
                 return;

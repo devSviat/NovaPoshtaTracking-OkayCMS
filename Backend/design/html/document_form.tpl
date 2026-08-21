@@ -457,9 +457,8 @@
         </script>
         <div class="fn_delivery_novaposhta" style="display: block;">
             <div class="fn_error hidden boxed boxed_warning"></div>
-            {* Накладну могли виписати вручну на сайті Нової Пошти — тоді її
-               треба не створювати, а привʼязати за номером. Поле показується
-               лише на вимогу: щодня ним користуються рідше, ніж створенням. *}
+            {* Виписану вручну накладну треба не створювати, а привʼязати за
+               номером. Поле під кнопкою, бо потрібне рідше за створення. *}
             <div class="np-actions">
                 <button id="fn_generate_document" class="btn btn-info {if $novaposhta_delivery_data->ref_id} disabled{/if}">
                     <span class="btn-text">{$btr->sviat__novaposhta_tracking__btn_create_invoice|escape}</span>
@@ -666,7 +665,6 @@
                     });
                 });
 
-                // Форма показується лише на вимогу — кнопкою поруч зі створенням.
                 $('#fn_attach_toggle').on('click', function () {
                     var $form = $('#fn_attach_form');
                     $form.toggleClass('hidden');
@@ -675,7 +673,6 @@
                     }
                 });
 
-                // Привʼязування накладної, виписаної вручну на сайті Нової Пошти.
                 $('#fn_attach_document').on('click', function () {
                     var $button = $(this);
                     var $buttonText = $button.find('.btn-text');
@@ -748,8 +745,7 @@
                     window.location.reload();
                 }
 
-                // Коди відмови з сервера перекладаємо тут: у відповіді вони
-                // машинні, щоб не залежати від мови адмінки.
+                // Сервер віддає машинні коди, щоб не залежати від мови адмінки.
                 function attachErrorText(code) {
                     var text = String(code || '');
 
