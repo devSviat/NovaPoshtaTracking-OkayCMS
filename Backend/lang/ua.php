@@ -173,5 +173,6 @@ $lang['sviat__novaposhta_tracking__attaching'] = 'Прив\'язуємо…';
 $lang['sviat__novaposhta_tracking__attach_success'] = 'Накладну %s прив\'язано';
 $lang['sviat__novaposhta_tracking__attach_already'] = 'У замовленні вже є накладна %s. Спершу відвʼяжіть її.';
 $lang['sviat__novaposhta_tracking__attach_not_found'] = 'Нова Пошта не знає такої накладної. Перевірте номер.';
+$lang['sviat__novaposhta_tracking__attach_elsewhere'] = 'Цю накладну вже привʼязано до замовлення №%s.';
 $lang['sviat__novaposhta_tracking__attach_invalid'] = 'Номер накладної — це рівно 14 цифр.';
 $lang['sviat__novaposhta_tracking__attach_confirm'] = 'Привʼязати';

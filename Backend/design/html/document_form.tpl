@@ -452,6 +452,7 @@
                 attach_done: "{$btr->sviat__novaposhta_tracking__attach_success|escape:'javascript'}",
                 attach_exists: "{$btr->sviat__novaposhta_tracking__attach_already|escape:'javascript'}",
                 attach_not_found: "{$btr->sviat__novaposhta_tracking__attach_not_found|escape:'javascript'}",
+                attach_elsewhere: "{$btr->sviat__novaposhta_tracking__attach_elsewhere|escape:'javascript'}",
                 attach_invalid: "{$btr->sviat__novaposhta_tracking__attach_invalid|escape:'javascript'}"
             };
         </script>
@@ -751,6 +752,9 @@
 
                     if (text.indexOf('already_attached:') === 0) {
                         return window.npDocumentFormT.attach_exists.replace('%s', text.slice('already_attached:'.length));
+                    }
+                    if (text.indexOf('attached_elsewhere:') === 0) {
+                        return window.npDocumentFormT.attach_elsewhere.replace('%s', text.slice('attached_elsewhere:'.length));
                     }
                     if (text === 'not_found_in_np') {
                         return window.npDocumentFormT.attach_not_found;

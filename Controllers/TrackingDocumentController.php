@@ -85,7 +85,7 @@ class TrackingDocumentController extends AbstractController
             }
 
             $intDocNumber = NovaPoshtaDocumentService::normalizeDocumentNumber(
-                (string) $this->request->post('int_doc_number')
+                (string) $this->request->post('int_doc_number', 'string')
             );
             if ($intDocNumber === null) {
                 $this->jsonError('invalid_number', false);
@@ -98,6 +98,14 @@ class TrackingDocumentController extends AbstractController
             $existing = $trackingEntity->findOne(['order_id' => $orderId]);
             if (!empty($existing->int_doc_number)) {
                 $this->jsonError('already_attached:' . $existing->int_doc_number, false);
+                return;
+            }
+
+            // Створена з адмінки накладна унікальна за побудовою, набрана вручну —
+            // ні: та сама посилка в двох замовленнях розсинхронить їхні статуси.
+            $duplicate = $trackingEntity->findOne(['int_doc_number' => $intDocNumber]);
+            if (!empty($duplicate->order_id) && (int) $duplicate->order_id !== $orderId) {
+                $this->jsonError('attached_elsewhere:' . (int) $duplicate->order_id, false);
                 return;
             }
 
@@ -121,6 +129,8 @@ class TrackingDocumentController extends AbstractController
 
             $documentService->saveTrackingData($orderId, $trackingDocument, $intDocNumber);
 
+            // Сирий документ виглядає зайвим, але з нього рендериться блок,
+            // який тут же стає на його місце.
             $result = ['success' => true, 'int_doc_number' => $intDocNumber, 'tracking_document' => $trackingDocument];
             $result['tracking_document'] = $this->renderTrackingDocument($result, $orderId);
 
