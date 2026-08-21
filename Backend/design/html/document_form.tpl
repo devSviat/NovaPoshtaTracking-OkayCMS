@@ -460,15 +460,16 @@
             <div class="fn_error hidden boxed boxed_warning"></div>
             {* Виписану вручну накладну треба не створювати, а привʼязати за
                номером. Поле під кнопкою, бо потрібне рідше за створення. *}
+            {assign var="np_has_document" value=!empty($novaposhta_delivery_data->int_doc_number)}
             <div class="np-actions">
-                <button id="fn_generate_document" class="btn btn-info {if $novaposhta_delivery_data->ref_id} disabled{/if}">
+                <button id="fn_generate_document" class="btn btn-info{if $np_has_document} disabled{/if}" {if $np_has_document}disabled{/if}>
                     <span class="btn-text">{$btr->sviat__novaposhta_tracking__btn_create_invoice|escape}</span>
                     <span class="btn-loader hidden">
                         <span class="spinner"></span>
                         <span class="loader-text">{$btr->sviat__novaposhta_tracking__creating|escape}</span>
                     </span>
                 </button>
-                <button id="fn_attach_toggle" type="button" class="btn btn_border_blue">
+                <button id="fn_attach_toggle" type="button" class="btn btn_border_blue{if $np_has_document} disabled{/if}" {if $np_has_document}disabled{/if}>
                     {$btr->sviat__novaposhta_tracking__btn_attach_invoice|escape}
                 </button>
             </div>
@@ -645,15 +646,17 @@
                                     .removeClass('hidden');
                                 $('.fn_error').addClass('hidden');
                                 
-                                $('#fn_generate_document').addClass('disabled').prop('disabled', true);
+                                lockDocumentButtons();
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
                                 
-                                toastr.success(window.npDocumentFormT.invoice_created.replace('%s', data.int_doc_number || ''), window.npDocumentFormT.success);
+                                toastr.success(window.npDocumentFormT.invoice_created.replace('%s', escapeHtml(data.int_doc_number)), window.npDocumentFormT.success);
                                 setTimeout(() => location.reload(), 1500);
                             } else if (data.error) {
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
-                                $('.fn_error').text(data.error).removeClass('hidden');
-                                toastr.error(data.error, 'Помилка');
+                                // Рядок уже екранований — .text() показав би сутності.
+                                var message = attachErrorText(data.error);
+                                $('.fn_error').html(message).removeClass('hidden');
+                                toastr.error(message, window.npDocumentFormT.error);
                             } else {
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
                                 toastr.error(window.npDocumentFormT.unknown_error, window.npDocumentFormT.error);
@@ -661,7 +664,7 @@
                         },
                         error: function(xhr, status, errorThrown) {
                             toggleLoading($button, $buttonText, $buttonLoader, false);
-                            toastr.error(window.npDocumentFormT.create_error.replace('%s', errorThrown), window.npDocumentFormT.error);
+                            toastr.error(window.npDocumentFormT.create_error.replace('%s', escapeHtml(errorThrown)), window.npDocumentFormT.error);
                         }
                     });
                 });
@@ -705,9 +708,10 @@
                             if (data && data.success) {
                                 $input.val('');
                                 toastr.success(
-                                    window.npDocumentFormT.attach_done.replace('%s', data.int_doc_number || ''),
+                                    window.npDocumentFormT.attach_done.replace('%s', escapeHtml(data.int_doc_number)),
                                     window.npDocumentFormT.success
                                 );
+                                lockDocumentButtons();
                                 showTrackingDocument(data.tracking_document);
                                 return;
                             }
@@ -720,7 +724,7 @@
                             toastr.error(
                                 payload && payload.error
                                     ? attachErrorText(payload.error)
-                                    : window.npDocumentFormT.create_error.replace('%s', errorThrown),
+                                    : window.npDocumentFormT.create_error.replace('%s', escapeHtml(errorThrown)),
                                 window.npDocumentFormT.error
                             );
                         }
@@ -746,15 +750,34 @@
                     window.location.reload();
                 }
 
+                // toastr показує повідомлення як HTML (escapeHtml у нього вимкнений),
+                // а сюди підставляються значення з відповіді сервера.
+                function escapeHtml(value) {
+                    return String(value == null ? '' : value)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                }
+
+                // Накладна в замовленні одна, тож після неї обидві дії закриті.
+                function lockDocumentButtons() {
+                    $('#fn_generate_document, #fn_attach_toggle')
+                        .addClass('disabled')
+                        .prop('disabled', true);
+                    $('#fn_attach_form').addClass('hidden');
+                }
+
                 // Сервер віддає машинні коди, щоб не залежати від мови адмінки.
                 function attachErrorText(code) {
                     var text = String(code || '');
 
                     if (text.indexOf('already_attached:') === 0) {
-                        return window.npDocumentFormT.attach_exists.replace('%s', text.slice('already_attached:'.length));
+                        return window.npDocumentFormT.attach_exists.replace('%s', escapeHtml(text.slice('already_attached:'.length)));
                     }
                     if (text.indexOf('attached_elsewhere:') === 0) {
-                        return window.npDocumentFormT.attach_elsewhere.replace('%s', text.slice('attached_elsewhere:'.length));
+                        return window.npDocumentFormT.attach_elsewhere.replace('%s', escapeHtml(text.slice('attached_elsewhere:'.length)));
                     }
                     if (text === 'not_found_in_np') {
                         return window.npDocumentFormT.attach_not_found;
@@ -763,7 +786,7 @@
                         return window.npDocumentFormT.attach_invalid;
                     }
 
-                    return text || window.npDocumentFormT.unknown_error;
+                    return escapeHtml(text) || window.npDocumentFormT.unknown_error;
                 }
             </script>
         {/literal}

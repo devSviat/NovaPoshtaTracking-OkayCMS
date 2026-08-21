@@ -118,10 +118,15 @@
         /**
          * Обробляє успішну відповідь від сервера
          */
-        handleSuccess: function(response, statusCode) {
-            const message = statusCode === '2' 
-                ? t('removed_from_db', 'Накладну видалено з бази даних (ТТН вже була видалена в Новій Пошті)') 
-                : t('removed_success', 'Накладну успішно видалено');
+        handleSuccess: function(response, statusCode, attachedManually) {
+            let message;
+            if (attachedManually) {
+                message = t('detached_success', 'Накладну відвʼязано від замовлення');
+            } else if (statusCode === '2') {
+                message = t('removed_from_db', 'Накладну видалено з бази даних (ТТН вже була видалена в Новій Пошті)');
+            } else {
+                message = t('removed_success', 'Накладну успішно видалено');
+            }
             toastr.success(message, t('success', 'Успіх'));
             setTimeout(() => location.reload(), 1500);
         },
@@ -150,7 +155,7 @@
         /**
          * Видаляє документ через API
          */
-        removeDocument: function(orderId, statusCode, $button) {
+        removeDocument: function(orderId, statusCode, $button, attachedManually) {
             if (!orderId) {
                 toastr.error('Order ID не знайдено', 'Помилка');
                 return;
@@ -164,7 +169,7 @@
                 timeout: 30000, // 30 секунд таймаут
                 success: (response) => {
                     if (response && response.success) {
-                        this.handleSuccess(response, statusCode);
+                        this.handleSuccess(response, statusCode, attachedManually);
                     } else {
                         this.handleApiError(response, $button);
                     }
@@ -181,6 +186,7 @@
         init: function($button) {
             const orderId = $button.data('order-id');
             const statusCode = $button.data('status-code') || '';
+            const attachedManually = String($button.data('attached-manually')) === '1';
             
             if (!orderId) {
                 toastr.error(t('order_id_not_found', 'Order ID не знайдено'), t('error', 'Помилка'));
@@ -192,7 +198,7 @@
                 .on('click.removeDocument', '.fn_submit_delete', () => {
                     $('#fn_action_modal').find('[data-dismiss="modal"]').first().trigger('click');
                     $button.prop('disabled', true).addClass('disabled');
-                    this.removeDocument(orderId, statusCode, $button);
+                    this.removeDocument(orderId, statusCode, $button, attachedManually);
                 });
         }
     };

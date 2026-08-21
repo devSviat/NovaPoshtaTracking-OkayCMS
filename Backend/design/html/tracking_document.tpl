@@ -359,10 +359,16 @@
                         data-order-id="{$order->id}">
                         {include file='svg_icon.tpl' svgId='refresh_icon'}
                     </button>
-                    {if $tracking_data && ($tracking_data->status_code == '1' || $tracking_data->status_code == '2')}
-                    <button type="button" id="fn_remove_document" title="{$btr->sviat__novaposhta_tracking__btn_remove_invoice|escape}"
+                    {* Привʼязану вручну накладну відчіпляємо за будь-якого статусу:
+                       у Новій Пошті її не створювали, тож рветься лише звʼязок
+                       із замовленням. Створену через API це не стосується. *}
+                    {assign var="np_attached_manually" value=empty($tracking_data->ref_id)}
+                    {if $tracking_data && ($tracking_data->status_code == '1' || $tracking_data->status_code == '2' || $np_attached_manually)}
+                    <button type="button" id="fn_remove_document"
+                        title="{if $np_attached_manually}{$btr->sviat__novaposhta_tracking__btn_detach_invoice|escape}{else}{$btr->sviat__novaposhta_tracking__btn_remove_invoice|escape}{/if}"
                         class="btn btn_np_remove fn_remove hint-bottom-right-t-info-s-small-mobile hint-anim"
                         data-toggle="modal" data-target="#fn_action_modal" data-order-id="{$order->id}"
+                        data-attached-manually="{if $np_attached_manually}1{else}0{/if}"
                         data-status-code="{$tracking_data->status_code}" onclick="removeDocumentAction($(this));">
                         {include file='svg_icon.tpl' svgId='trash'}
                             </button>
@@ -389,6 +395,7 @@
             remove_error: "{$btr->sviat__novaposhta_tracking__remove_error|escape:'javascript'}",
             removed_from_db: "{$btr->sviat__novaposhta_tracking__removed_from_db|escape:'javascript'}",
             removed_success: "{$btr->sviat__novaposhta_tracking__removed_success|escape:'javascript'}",
+            detached_success: "{$btr->sviat__novaposhta_tracking__detached_success|escape:'javascript'}",
             remove_api_error: "{$btr->sviat__novaposhta_tracking__remove_api_error|escape:'javascript'}",
             error_api: "{$btr->sviat__novaposhta_tracking__error_api|escape:'javascript'}",
             error_connection: "{$btr->sviat__novaposhta_tracking__error_connection|escape:'javascript'}"

@@ -70,6 +70,12 @@ class NovaPoshtaDocumentService
                 return ['error' => 'Order ID is required'];
             }
 
+            $trackingEntity = $this->entityFactory->get(NovaPoshtaTrackingEntity::class);
+            $existing = $trackingEntity->findOne(['order_id' => $orderId]);
+            if (self::hasDocument($existing)) {
+                return ['error' => 'already_attached:' . $existing->int_doc_number];
+            }
+
             // Отримуємо та кешуємо deliveryData (щоб не робити зайві запити)
             $deliveryDataEntity = $this->entityFactory->get(NPCostDeliveryDataEntity::class);
             $deliveryData = $deliveryDataEntity->findOne(['order_id' => $orderId]);
@@ -1524,6 +1530,17 @@ class NovaPoshtaDocumentService
         $digits = preg_replace('/\D+/', '', $raw) ?? '';
 
         return strlen($digits) === self::DOCUMENT_NUMBER_LENGTH ? $digits : null;
+    }
+
+    /**
+     * Чи має замовлення накладну. Ознака — номер: `ref_id` є лише в тієї, що
+     * зроблена через API, і привʼязана вручну лишалась би непоміченою.
+     *
+     * @param object|null $trackingRow
+     */
+    public static function hasDocument($trackingRow): bool
+    {
+        return is_object($trackingRow) && !empty($trackingRow->int_doc_number);
     }
 
     /**
