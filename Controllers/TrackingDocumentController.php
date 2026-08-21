@@ -96,7 +96,7 @@ class TrackingDocumentController extends AbstractController
             // б звʼязок із посилкою, яку вже везуть. Спершу відвʼязати.
             $trackingEntity = $this->entityFactory->get(NovaPoshtaTrackingEntity::class);
             $existing = $trackingEntity->findOne(['order_id' => $orderId]);
-            if (!empty($existing->int_doc_number)) {
+            if (NovaPoshtaDocumentService::hasDocument($existing)) {
                 $this->jsonError('already_attached:' . $existing->int_doc_number, false);
                 return;
             }
