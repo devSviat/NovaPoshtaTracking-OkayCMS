@@ -749,7 +749,6 @@
                     window.location.reload();
                 }
 
-                // Сервер віддає машинні коди, щоб не залежати від мови адмінки.
                 // Накладна в замовленні одна, тож після неї обидві дії закриті.
                 function lockDocumentButtons() {
                     $('#fn_generate_document, #fn_attach_toggle')
@@ -758,6 +757,7 @@
                     $('#fn_attach_form').addClass('hidden');
                 }
 
+                // Сервер віддає машинні коди, щоб не залежати від мови адмінки.
                 function attachErrorText(code) {
                     var text = String(code || '');
 
