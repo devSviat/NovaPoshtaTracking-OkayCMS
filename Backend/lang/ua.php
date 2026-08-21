@@ -144,6 +144,7 @@ $lang['sviat__novaposhta_tracking__hide'] = 'Приховати';
 $lang['sviat__novaposhta_tracking__updated'] = 'Оновлено:';
 $lang['sviat__novaposhta_tracking__btn_update_tracking'] = 'Оновити дані трекінгу';
 $lang['sviat__novaposhta_tracking__btn_remove_invoice'] = 'Видалити накладну';
+$lang['sviat__novaposhta_tracking__btn_detach_invoice'] = 'Відвʼязати накладну';
 
 // tracking_document.js
 $lang['sviat__novaposhta_tracking__order_id_not_found'] = 'Order ID не знайдено';
@@ -154,6 +155,7 @@ $lang['sviat__novaposhta_tracking__not_found'] = 'Сторінка не знай
 $lang['sviat__novaposhta_tracking__remove_error'] = 'Помилка видалення накладної. Спробуйте ще раз.';
 $lang['sviat__novaposhta_tracking__removed_from_db'] = 'Накладну видалено з бази даних (ТТН вже була видалена в Новій Пошті)';
 $lang['sviat__novaposhta_tracking__removed_success'] = 'Накладну успішно видалено';
+$lang['sviat__novaposhta_tracking__detached_success'] = 'Накладну відвʼязано від замовлення';
 $lang['sviat__novaposhta_tracking__remove_api_error'] = 'Помилка видалення накладної через API Нової Пошти';
 $lang['sviat__novaposhta_tracking__error_api'] = 'Помилка API';
 $lang['sviat__novaposhta_tracking__error_connection'] = 'Помилка з\'єднання';

@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 class SingleDocumentPerOrderTest extends TestCase
 {
     private const TEMPLATE = 'Okay/Modules/Sviat/NovaPoshtaTracking/Backend/design/html/document_form.tpl';
+    private const TRACKING_TEMPLATE = 'Okay/Modules/Sviat/NovaPoshtaTracking/Backend/design/html/tracking_document.tpl';
 
     /** @dataProvider trackingRowProvider */
     #[DataProvider('trackingRowProvider')]
@@ -71,6 +72,50 @@ class SingleDocumentPerOrderTest extends TestCase
             '~\{assign\s+var="np_has_document"\s+value=[^}]*int_doc_number~',
             $this->markup()
         );
+    }
+
+    /**
+     * Замкнувши обидві кнопки, треба лишити вихід. Видалення показувалось лише
+     * для статусів 1 і 2 — привʼязану вручну накладну в дорозі не відчепити б
+     * узагалі, а помилку набору виправляють саме так.
+     *
+     * Для неї це безпечно за будь-якого статусу: у Новій Пошті нічого не
+     * створювали, тож і видаляти там нічого — рветься лише звʼязок із замовленням.
+     */
+    public function testManuallyAttachedDocumentCanAlwaysBeDetached(): void
+    {
+        $condition = $this->deleteButtonCondition();
+
+        $this->assertMatchesRegularExpression(
+            '~empty\(\$tracking_data->ref_id\)~',
+            $condition,
+            'привʼязану вручну накладну не відчепити: умова дивиться лише на статус'
+        );
+    }
+
+    /** Створену через API це не стосується: видаляти її поза статусами 1 і 2 не можна. */
+    public function testApiDocumentKeepsItsStatusRestriction(): void
+    {
+        $condition = $this->deleteButtonCondition();
+
+        $this->assertStringContainsString("status_code == '1'", $condition);
+        $this->assertStringContainsString("status_code == '2'", $condition);
+    }
+
+    private function deleteButtonCondition(): string
+    {
+        $markup = file_get_contents(dirname(__DIR__, 4) . '/' . self::TRACKING_TEMPLATE);
+        $at = strpos($markup, 'fn_remove_document');
+        $this->assertNotFalse($at, 'кнопки видалення в шаблоні немає');
+
+        $before = substr($markup, 0, $at);
+        // Ознака може приїхати змінною, тож беремо і присвоєння перед умовою.
+        $from = max(0, min(
+            strrpos($before, '{if ') ?: 0,
+            strrpos($before, '{assign') ?: strrpos($before, '{if ')
+        ));
+
+        return substr($before, $from);
     }
 
     private function markup(): string
