@@ -99,6 +99,29 @@ class RequestOriginTest extends TestCase
         self::assertFalse(RequestOrigin::isFromThisSite());
     }
 
+    /**
+     * Робочий шлях: домен ніхто не задає явно, тож Request бере його з
+     * HTTP_HOST — тобто з адреси, яку відкрив сам відвідувач. Саме тому
+     * очікуваний origin не може розійтися з тим, що шле браузер.
+     */
+    public function testExpectedOriginFallsBackToTheRequestHost(): void
+    {
+        Request::setProtocol('');
+        Request::setDomain('');
+        // Обчислення протоколу в ядрі читає обидва ключі напряму; у CLI їх
+        // немає, і без них тест ловив би попередження ядра замість свого.
+        $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+        $_SERVER['SERVER_PORT'] = '443';
+        $_SERVER['HTTP_HOST'] = 'shop.example';
+        $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
+
+        $this->headers('https://shop.example', null);
+        self::assertTrue(RequestOrigin::isFromThisSite());
+
+        $this->headers('https://evil.example', null);
+        self::assertFalse(RequestOrigin::isFromThisSite());
+    }
+
     private function headers(?string $origin, ?string $referer): void
     {
         unset($_SERVER['HTTP_ORIGIN'], $_SERVER['HTTP_REFERER']);
