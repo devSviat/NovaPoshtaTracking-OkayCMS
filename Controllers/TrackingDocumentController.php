@@ -5,6 +5,7 @@ namespace Okay\Modules\Sviat\NovaPoshtaTracking\Controllers;
 use Okay\Controllers\AbstractController;
 use Okay\Core\Managers;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Security\AdminIdentity;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Security\RequestOrigin;
 use Okay\Entities\ManagersEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Services\NovaPoshtaDocumentService;
@@ -33,7 +34,7 @@ class TrackingDocumentController extends AbstractController
         }
 
         try {
-            $orderId = $this->request->get('order_id', 'int') ?: $this->request->post('order_id', 'int');
+            $orderId = $this->request->post('order_id', 'int');
             if (!$orderId) {
                 $this->jsonError('Order ID is required');
                 return;
@@ -221,9 +222,11 @@ class TrackingDocumentController extends AbstractController
     }
 
     /**
-     * Видалення експрес-накладної через API Нової Пошти та в бд
-     * Захист: для статусу 1 видаляємо з БД тільки після успішного видалення через API
-     * Для статусу 2 можна видаляти з БД без перевірки (накладна вже видалена в НП)
+     * Видалення експрес-накладної через API Нової Пошти та в бд.
+     *
+     * З БД прибираємо лише після того, як НП підтвердила видалення. Виняток —
+     * статус 2 (накладну вже видалено в НП) і накладна без ref_id (привʼязана
+     * вручну, в НП її не наша справа).
      */
     public function removeDocument(
         AdminIdentity $adminIdentity,
@@ -236,7 +239,7 @@ class TrackingDocumentController extends AbstractController
         }
 
         try {
-            $orderId = $this->request->get('order_id', 'int');
+            $orderId = $this->request->post('order_id', 'int');
             $trackingEntity = $this->entityFactory->get(NovaPoshtaTrackingEntity::class);
             $trackingData = $trackingEntity->findOne(['order_id' => $orderId]);
 
@@ -247,12 +250,7 @@ class TrackingDocumentController extends AbstractController
             $statusCode = $trackingData->status_code ?? '';
             $apiDeleteSuccess = $this->deleteDocumentViaApi($novaPoshtaApiHelper, $trackingData, $statusCode, $orderId);
 
-            if ($apiDeleteSuccess === false) {
-                // Помилка API для статусу 1 - не видаляємо з БД
-                return;
-            }
-
-            // Видаляємо з БД тільки якщо API видалення успішне або статус = 2
+            // Помилку вже віддано з deleteDocumentViaApi.
             if ($apiDeleteSuccess) {
                 $trackingEntity->delete($trackingData->id);
                 
@@ -293,7 +291,7 @@ class TrackingDocumentController extends AbstractController
      * @param object $trackingData
      * @param string $statusCode
      * @param int $orderId
-     * @return bool|null true - успішно, false - помилка (для статусу 1), null - пропущено
+     * @return bool true — можна прибирати з БД, false — НП відмовила
      */
     private function deleteDocumentViaApi(
         NovaPoshtaApiHelper $novaPoshtaApiHelper,
@@ -311,7 +309,6 @@ class TrackingDocumentController extends AbstractController
             return true;
         }
         
-        // Якщо статус = 1, потрібно спочатку видалити через API і перевірити результат
         $deleteRequest = [
             "apiKey" => $this->settings->get('newpost_key'),
             "modelName" => "InternetDocument",
@@ -328,17 +325,15 @@ class TrackingDocumentController extends AbstractController
             return true;
         }
         
-        // Якщо статус = 1 і помилка API, не видаляємо з БД і повертаємо помилку
-        if ($statusCode === '1') {
-            $errorMessage = $novaPoshtaApiHelper->getErrorMessage($deleteResult);
-            error_log('Failed to delete document via API for order_id=' . $orderId . ': ' . $errorMessage);
-            $this->jsonError($errorMessage, false);
-            return false;
-        }
-        
-        // Для інших статусів логуємо помилку, але все одно видаляємо з БД
-        error_log('API delete failed for order_id=' . $orderId . ' but deleting from DB anyway (status_code=' . $statusCode . ')');
-        return true;
+        // Нова Пошта відмовила — рядок лишається. Прибрати його означало б
+        // забрати в замовлення ТТН, відстеження і колонку в експорті, поки
+        // накладна живе далі в НП, і менеджер побачив би success.
+        $errorMessage = $novaPoshtaApiHelper->getErrorMessage($deleteResult);
+        error_log('Failed to delete document via API for order_id=' . $orderId
+            . ' (status_code=' . $statusCode . '): ' . $errorMessage);
+        $this->jsonError($errorMessage, false);
+
+        return false;
     }
 
     /**
@@ -392,8 +387,10 @@ class TrackingDocumentController extends AbstractController
      * або видалити експрес-накладну для довільного замовлення — це реальні
      * гроші й реальні виклики до API Нової Пошти.
      *
-     * Звідки береться логін менеджера, вирішує AdminIdentity: рушії
-     * зберігають бекендову сесію по-різному.
+     * Перевіряються дві різні речі. *Хто* — це AdminIdentity: рушії зберігають
+     * бекендову сесію по-різному. *Звідки* — RequestOrigin разом із вимогою
+     * POST: кука адмінки має SameSite=Lax, тож міжсайтовий POST її не несе, а
+     * top-level GET-навігація несе — саме цей шлях і перекриває вимога POST.
      */
     private function isAllowed(
         AdminIdentity $adminIdentity,
@@ -401,6 +398,18 @@ class TrackingDocumentController extends AbstractController
         ManagersEntity $managersEntity
     ): bool
     {
+        if (!$this->request->method('post')) {
+            $this->response->setStatusCode(405);
+            $this->jsonError('Method Not Allowed');
+            return false;
+        }
+
+        if (!RequestOrigin::isFromThisSite()) {
+            $this->response->setStatusCode(403);
+            $this->jsonError('Forbidden');
+            return false;
+        }
+
         $adminLogin = $adminIdentity->login();
         if (empty($adminLogin)) {
             $this->response->setStatusCode(401);

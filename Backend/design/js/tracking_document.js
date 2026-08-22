@@ -76,10 +76,10 @@
         /**
          * Отримує URL для видалення документа
          */
-        getRemoveUrl: function(orderId) {
-            return (typeof window.novaPoshtaRoutes !== 'undefined' && window.novaPoshtaRoutes.removeDocument) 
-                ? window.novaPoshtaRoutes.removeDocument + '?order_id=' + orderId
-                : '/backend/nova-poshta/ajax/removeDocument?order_id=' + orderId;
+        getRemoveUrl: function() {
+            return (typeof window.novaPoshtaRoutes !== 'undefined' && window.novaPoshtaRoutes.removeDocument)
+                ? window.novaPoshtaRoutes.removeDocument
+                : '/backend/nova-poshta/ajax/removeDocument';
         },
 
         /**
@@ -161,10 +161,15 @@
                 return;
             }
 
-            const removeUrl = this.getRemoveUrl(orderId);
-            
+            const removeUrl = this.getRemoveUrl();
+
             $.ajax({
                 url: removeUrl,
+                // Тільки POST: маршрут іде повз авторизацію бекенду, а на GET
+                // його дістає навігація з чужої сторінки — куку SameSite=Lax
+                // браузер туди кладе.
+                type: 'POST',
+                data: { order_id: orderId },
                 dataType: 'json',
                 timeout: 30000, // 30 секунд таймаут
                 success: (response) => {
