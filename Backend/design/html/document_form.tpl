@@ -208,6 +208,12 @@
         </div>
     </div>
 
+    {* Точка розширення над сумами: оголошена цінність тут керує заразом і
+       контролем оплати, і накладеним платежем, тож інші модулі мають де
+       попередити про вже внесені кошти. *}
+    {$block = {get_design_block block="novaposhta_document_payment"}}
+    {if $block}{$block}{/if}
+
     <div class="row mb-h">
         <div class="col-md-12">
             <div id="service_type" class="row">
@@ -218,7 +224,11 @@
                         </i>
                     </div>
                     <input name="cost" class="form-control mb-h fn_cost" type="number"
-                        value="{if isset($dataNPCostDeliveryDataEntity->cost) || !empty($dataNPCostDeliveryDataEntity->cost)}{$dataNPCostDeliveryDataEntity->cost}{else}{$order->total_price|escape}{/if}"
+                        {* orderAmountDueOnPickup ставить той, хто знає про вже внесені кошти
+                           (наприклад модуль фіскалізації). Це поле задає і контроль оплати,
+                           і накладений платіж, тож повна сума тут означала б, що клієнт
+                           платить удруге. *}
+                        value="{if isset($dataNPCostDeliveryDataEntity->cost) || !empty($dataNPCostDeliveryDataEntity->cost)}{$dataNPCostDeliveryDataEntity->cost}{elseif !empty($orderAmountDueOnPickup)}{$orderAmountDueOnPickup|escape}{else}{$order->total_price|escape}{/if}"
                         min="0" step="0.01" />
                 </div>
                 <div class="col-md-6">
