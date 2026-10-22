@@ -184,9 +184,19 @@ class BackendExtender implements ExtensionInterface
     /** Збереження даних накладної при збереженні замовлення */
     public function postOrder($order)
     {
+        // Хук стоїть до запису замовлення: у нового немає ні id, ні рядка даних
+        // накладної, як і в наявного з доставкою не Новою Поштою. Оновлювати нічого.
+        if (empty($order->id)) {
+            return $order;
+        }
+
         $costDeliveryDataEntity = $this->entityFactory->get(NPCostDeliveryDataEntity::class);
 
-        $costDeliveryDataEntityId = $costDeliveryDataEntity->findOne(['order_id' => $order->id])->id;
+        $costDeliveryData = $costDeliveryDataEntity->findOne(['order_id' => $order->id]);
+        if (empty($costDeliveryData->id)) {
+            return $order;
+        }
+        $costDeliveryDataEntityId = $costDeliveryData->id;
 
         $payerType = $this->request->post('payer_type_radiobutton');
         $cargoType = $this->request->post('cargo_type_radiobutton');
