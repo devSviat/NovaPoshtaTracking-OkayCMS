@@ -159,7 +159,7 @@ class BackendExtender implements ExtensionInterface
         // Вибір типу отримувача (юр. особа / фіз. особа) — тільки якщо встановлено InvoicePayment і замовлення з цим типом оплати
         $showRecipientTypeChoice = false;
         $defaultRecipientType = 'PrivatePerson';
-        $invoicePaymentEntityClass = 'Okay\Modules\Sviat\InvoicePayment\Entities\InvoicePaymentDataEntity';
+        $invoicePaymentEntityClass = \Okay\Modules\Sviat\InvoicePayment\Entities\InvoicePaymentDataEntity::class;
         if (class_exists($invoicePaymentEntityClass) && $dataOrdersEntity && !empty($dataOrdersEntity->payment_method_id)) {
             $paymentMethod = $this->entityFactory->get(PaymentsEntity::class)->get($dataOrdersEntity->payment_method_id);
             if ($paymentMethod && isset($paymentMethod->module) && $paymentMethod->module === 'Sviat/InvoicePayment') {
@@ -170,7 +170,7 @@ class BackendExtender implements ExtensionInterface
                         $showRecipientTypeChoice = true;
                         $defaultRecipientType = 'Organization';
                     }
-                } catch (\Throwable $e) {
+                } catch (\Throwable) {
                     // модуль вимкнений або таблиця відсутня
                 }
             }
@@ -319,7 +319,7 @@ class BackendExtender implements ExtensionInterface
 
                 $this->design->assign('dataNPCostDeliveryDataEntity', $deliveryData);
 
-                $pickupLocker = isset($deliveryData->pickup_locker) ? $deliveryData->pickup_locker : null;
+                $pickupLocker = $deliveryData->pickup_locker ?? null;
                 $this->design->assign('pickup_locker', $pickupLocker);
             }
         }

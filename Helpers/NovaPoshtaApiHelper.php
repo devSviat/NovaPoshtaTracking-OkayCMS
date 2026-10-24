@@ -11,9 +11,9 @@ class NovaPoshtaApiHelper
     private $settings;
     private static $cache = [];
     private static $curlHandle = null;
-    private const CACHE_TTL = 300; // 5 хвилин для кешування запитів
-    private const MAX_RETRIES = 2; // Максимальна кількість спроб при помилці
-    private const REQUEST_TIMEOUT = 20; // Таймаут запиту в секундах
+    private const int CACHE_TTL = 300; // 5 хвилин для кешування запитів
+    private const int MAX_RETRIES = 2; // Максимальна кількість спроб при помилці
+    private const int REQUEST_TIMEOUT = 20; // Таймаут запиту в секундах
 
     public function __construct(Settings $settings)
     {

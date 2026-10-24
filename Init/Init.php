@@ -25,22 +25,22 @@ class Init extends AbstractInit
         $this->setBackendMainController('NovaPoshtaAdmin');
 
         // Поля NPCostDeliveryDataEntity (розширення таблиці з OkayCMS NovaposhtaCost)
-        $payerTypeField = (new EntityField('payer_type'))->setTypeVarchar(255, true);
-        $paymentMethodField = (new EntityField('payment_method'))->setTypeVarchar(255, true);
-        $cargoTypeField = (new EntityField('cargo_type'))->setTypeVarchar(255, true);
-        $serviceTypeField = (new EntityField('service_type'))->setTypeVarchar(255, true);
-        $costField = (new EntityField('cost'))->setTypeDecimal('14,2', true);
-        $controlPaymentField = (new EntityField('control_payment'))->setTypeTinyInt(1, true);
-        $backPayerTypeField = (new EntityField('back_payer_type'))->setTypeVarchar(255, true);
-        $pickupLockerField = (new EntityField('pickup_locker'))->setTypeTinyInt(1, true);
-        $volumetricVolumeField = (new EntityField('volumetric_volume'))->setTypeVarchar(50, true);
-        $volumetricLengthField = (new EntityField('volumetric_length'))->setTypeVarchar(50, true);
-        $volumetricWidthField = (new EntityField('volumetric_width'))->setTypeVarchar(50, true);
-        $volumetricHeightField = (new EntityField('volumetric_height'))->setTypeVarchar(50, true);
-        $volumetricWeightField = (new EntityField('volumetric_weight'))->setTypeVarchar(50, true);
-        $warehouseVolumeField = (new EntityField('warehouse_volume'))->setTypeVarchar(50, true);
-        $warehouseWeightField = (new EntityField('warehouse_weight'))->setTypeVarchar(50, true);
-        $additionalInformationField = (new EntityField('additional_information'))->setTypeVarchar(255, true);
+        $payerTypeField = new EntityField('payer_type')->setTypeVarchar(255, true);
+        $paymentMethodField = new EntityField('payment_method')->setTypeVarchar(255, true);
+        $cargoTypeField = new EntityField('cargo_type')->setTypeVarchar(255, true);
+        $serviceTypeField = new EntityField('service_type')->setTypeVarchar(255, true);
+        $costField = new EntityField('cost')->setTypeDecimal('14,2', true);
+        $controlPaymentField = new EntityField('control_payment')->setTypeTinyInt(1, true);
+        $backPayerTypeField = new EntityField('back_payer_type')->setTypeVarchar(255, true);
+        $pickupLockerField = new EntityField('pickup_locker')->setTypeTinyInt(1, true);
+        $volumetricVolumeField = new EntityField('volumetric_volume')->setTypeVarchar(50, true);
+        $volumetricLengthField = new EntityField('volumetric_length')->setTypeVarchar(50, true);
+        $volumetricWidthField = new EntityField('volumetric_width')->setTypeVarchar(50, true);
+        $volumetricHeightField = new EntityField('volumetric_height')->setTypeVarchar(50, true);
+        $volumetricWeightField = new EntityField('volumetric_weight')->setTypeVarchar(50, true);
+        $warehouseVolumeField = new EntityField('warehouse_volume')->setTypeVarchar(50, true);
+        $warehouseWeightField = new EntityField('warehouse_weight')->setTypeVarchar(50, true);
+        $additionalInformationField = new EntityField('additional_information')->setTypeVarchar(255, true);
         
         $this->migrateEntityField(NPCostDeliveryDataEntity::class, $payerTypeField);
         $this->migrateEntityField(NPCostDeliveryDataEntity::class, $paymentMethodField);
@@ -61,16 +61,16 @@ class Init extends AbstractInit
 
         // Таблиця трекінгу накладних
         $this->migrateEntityTable(NovaPoshtaTrackingEntity::class, [
-            (new EntityField('id'))->setIndexPrimaryKey()->setTypeInt(11, false)->setAutoIncrement(),
-            (new EntityField('order_id'))->setTypeInt(11)->setIndex(),
-            (new EntityField('int_doc_number'))->setTypeVarchar(36, false),
-            (new EntityField('ref_id'))->setTypeVarchar(36, false),
-            (new EntityField('status_code'))->setTypeVarchar(36, false),
-            (new EntityField('tracking_update_at'))->setTypeDatetime(true),
-            (new EntityField('actual_delivery_at'))->setTypeDatetime(true),
-            (new EntityField('tracking_response'))->setTypeLongText()->setNullable(),
-            (new EntityField('created_at'))->setTypeDatetime(false),
-            (new EntityField('updated_at'))->setTypeDatetime(false),
+            new EntityField('id')->setIndexPrimaryKey()->setTypeInt(11, false)->setAutoIncrement(),
+            new EntityField('order_id')->setTypeInt(11)->setIndex(),
+            new EntityField('int_doc_number')->setTypeVarchar(36, false),
+            new EntityField('ref_id')->setTypeVarchar(36, false),
+            new EntityField('status_code')->setTypeVarchar(36, false),
+            new EntityField('tracking_update_at')->setTypeDatetime(true),
+            new EntityField('actual_delivery_at')->setTypeDatetime(true),
+            new EntityField('tracking_response')->setTypeLongText()->setNullable(),
+            new EntityField('created_at')->setTypeDatetime(false),
+            new EntityField('updated_at')->setTypeDatetime(false),
         ]);
     }
 
@@ -153,7 +153,7 @@ class Init extends AbstractInit
         );
 
         $this->registerSchedule(
-            (new Schedule([TrackingDocumentCronHelper::class, 'updateAllTrackingDocuments']))
+            new Schedule([TrackingDocumentCronHelper::class, 'updateAllTrackingDocuments'])
                 ->name('Update Nova Poshta Tracking Docs')
                 ->time('*/10 * * * *')
                 ->overlap(false)
@@ -168,15 +168,15 @@ class Init extends AbstractInit
     {
         $this->migrateEntityField(
             NPCostDeliveryDataEntity::class,
-            (new EntityField('recipient_address_note'))->setTypeVarchar(50, true)
+            new EntityField('recipient_address_note')->setTypeVarchar(50, true)
         );
         $this->migrateEntityField(
             NPCostDeliveryDataEntity::class,
-            (new EntityField('door_delivery'))->setTypeTinyInt(1, true)
+            new EntityField('door_delivery')->setTypeTinyInt(1, true)
         );
         $this->migrateEntityField(
             NPCostDeliveryDataEntity::class,
-            (new EntityField('lifting_floor'))->setTypeVarchar(10, true)
+            new EntityField('lifting_floor')->setTypeVarchar(10, true)
         );
     }
 }

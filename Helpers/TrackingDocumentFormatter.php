@@ -261,7 +261,7 @@ trait TrackingDocumentFormatter
                 return null;
             }
             return $phoneUtil->format($phoneNumberProto, \libphonenumber\PhoneNumberFormat::E164);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return null;
         }
     }

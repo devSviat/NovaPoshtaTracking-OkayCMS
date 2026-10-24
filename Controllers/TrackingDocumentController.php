@@ -19,7 +19,7 @@ class TrackingDocumentController extends AbstractController
     use TrackingDocumentFormatter;
 
     /** Те саме право, що й у NovaPoshtaAdmin (див. Init). */
-    private const PERMISSION = 'orders';
+    private const string PERMISSION = 'orders';
     /**
      * Генерація експрес-накладної через API Нової Пошти
      */
