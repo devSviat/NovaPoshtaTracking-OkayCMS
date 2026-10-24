@@ -17,12 +17,12 @@ class TrackingDocumentCronHelper
     private $settings;
     private $novaPoshtaApiHelper;
     private $documentService;
-    private const MAX_DOCUMENTS_PER_REQUEST = 100; // Максимум накладних в одному запиті до API
+    private const int MAX_DOCUMENTS_PER_REQUEST = 100; // Максимум накладних в одному запиті до API
 
     /**
      * Масив фінальних статусів, які не потребують подальшого оновлення
      */
-    private const FINAL_STATUSES = [
+    private const array FINAL_STATUSES = [
         '2',    // Видалено
         '9',    // Відправлення отримано
         '11',   // Відправлення отримано (переказ видано)
@@ -196,7 +196,7 @@ class TrackingDocumentCronHelper
             try {
                 $this->documentService->saveTrackingData($orderId, $trackingDocument, $documentNumber, $trackingId);
                 $updated++;
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 $errors++;
             }
         }

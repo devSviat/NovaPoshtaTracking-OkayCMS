@@ -28,17 +28,17 @@ class NovaPoshtaDocumentService
     private $backendOrdersHelper;
     private $money;
 
-    private const LOCKER_MAX = ['length' => 60, 'width' => 40, 'height' => 30, 'weight' => 20];
-    private const LOCKER_DEFAULTS = ['volume' => '0.001', 'length' => '10', 'width' => '10', 'height' => '10', 'weight' => '0.5'];
-    private const WAREHOUSE_MAX_WEIGHT = 30;
-    private const WAREHOUSE_MAX_VOLUME = 0.12;
-    private const WAREHOUSE_MIN_VOLUME = 0.0004;
-    private const WAREHOUSE_MIN_WEIGHT = 0.1;
-    private const VOLUMETRIC_WEIGHT_COEFFICIENT = 250;
-    private const DOCUMENT_NUMBER_LENGTH = 14;
+    private const array LOCKER_MAX = ['length' => 60, 'width' => 40, 'height' => 30, 'weight' => 20];
+    private const array LOCKER_DEFAULTS = ['volume' => '0.001', 'length' => '10', 'width' => '10', 'height' => '10', 'weight' => '0.5'];
+    private const int WAREHOUSE_MAX_WEIGHT = 30;
+    private const float WAREHOUSE_MAX_VOLUME = 0.12;
+    private const float WAREHOUSE_MIN_VOLUME = 0.0004;
+    private const float WAREHOUSE_MIN_WEIGHT = 0.1;
+    private const int VOLUMETRIC_WEIGHT_COEFFICIENT = 250;
+    private const int DOCUMENT_NUMBER_LENGTH = 14;
 
     /** Статус, яким Нова Пошта відповідає на неіснуючий номер. */
-    private const STATUS_NOT_FOUND = '3';
+    private const string STATUS_NOT_FOUND = '3';
 
     public function __construct(
         EntityFactory $entityFactory,
@@ -335,9 +335,7 @@ class NovaPoshtaDocumentService
 
         // Control payment
         $controlPayment = $this->getRequestParam('control_payment');
-        if ($controlPayment === null) {
-            $controlPayment = $this->getPriorityValue(null, ($deliveryData && isset($deliveryData->control_payment)) ? $deliveryData->control_payment : null, 'novapost_payment_control', null);
-        }
+        $controlPayment ??= $this->getPriorityValue(null, ($deliveryData && isset($deliveryData->control_payment)) ? $deliveryData->control_payment : null, 'novapost_payment_control', null);
         $controlPayment = $controlPayment !== null ? (int)$controlPayment : null;
 
         // Pickup locker
@@ -514,7 +512,7 @@ class NovaPoshtaDocumentService
                 return str_replace(',', '.', trim((string)$settingValue));
             }
         }
-        return $default !== null ? $default : '';
+        return $default ?? '';
     }
 
     /**
@@ -689,7 +687,7 @@ class NovaPoshtaDocumentService
             try {
                 $unserialized = unserialize($delivery->settings, ['allowed_classes' => [\stdClass::class]]);
                 $delivery->settings = is_array($unserialized) ? $unserialized : [];
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 $delivery->settings = [];
             }
         } else {
@@ -784,7 +782,7 @@ class NovaPoshtaDocumentService
         }
 
         $recipient = $recipientResult->data[0];
-        $contactPerson = isset($recipient->ContactPerson->data[0]) ? $recipient->ContactPerson->data[0] : null;
+        $contactPerson = $recipient->ContactPerson->data[0] ?? null;
 
         if (!$contactPerson && !empty($recipient->Ref)) {
             $contactsResult = $this->apiHelper->getContactPersonByCounterpartyRef($recipient->Ref, false);
@@ -863,7 +861,7 @@ class NovaPoshtaDocumentService
             }
             $payment = $this->entityFactory->get(PaymentsEntity::class)->get($order->payment_method_id);
             return $payment && isset($payment->module) && $payment->module === 'Sviat/InvoicePayment';
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return false;
         }
     }
@@ -874,7 +872,7 @@ class NovaPoshtaDocumentService
      */
     private function getInvoicePaymentDataForOrder(int $orderId): ?object
     {
-        $invoicePaymentEntityClass = 'Okay\Modules\Sviat\InvoicePayment\Entities\InvoicePaymentDataEntity';
+        $invoicePaymentEntityClass = \Okay\Modules\Sviat\InvoicePayment\Entities\InvoicePaymentDataEntity::class;
         if (!class_exists($invoicePaymentEntityClass)) {
             return null;
         }
@@ -884,7 +882,7 @@ class NovaPoshtaDocumentService
             if ($data && !empty(trim((string)$data->edrpou)) && !empty(trim((string)$data->company_name))) {
                 return $data;
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // Таблиця відсутня (модуль не встановлений) або інша помилка БД
         }
         return null;
