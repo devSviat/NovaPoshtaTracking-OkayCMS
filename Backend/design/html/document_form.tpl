@@ -217,21 +217,27 @@
     <div class="row mb-h">
         <div class="col-md-12">
             <div id="service_type" class="row">
-                <div class="col-md-6">
+                <div class="col-xs-6">
                     <div class="heading_label">{$btr->sviat__novaposhta_tracking__announced_value|escape}
                         <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__announced_value_tooltip|escape}">
                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                         </i>
                     </div>
                     <input name="cost" class="form-control mb-h fn_cost" type="number"
-                        {* orderAmountDueOnPickup ставить той, хто знає про вже внесені кошти
-                           (наприклад модуль фіскалізації). Це поле задає і контроль оплати,
-                           і накладений платіж, тож повна сума тут означала б, що клієнт
-                           платить удруге. *}
-                        value="{if isset($dataNPCostDeliveryDataEntity->cost) || !empty($dataNPCostDeliveryDataEntity->cost)}{$dataNPCostDeliveryDataEntity->cost}{elseif !empty($orderAmountDueOnPickup)}{$orderAmountDueOnPickup|escape}{else}{$order->total_price|escape}{/if}"
+                        value="{if isset($dataNPCostDeliveryDataEntity->cost) || !empty($dataNPCostDeliveryDataEntity->cost)}{$dataNPCostDeliveryDataEntity->cost}{else}{$order->total_price|escape}{/if}"
                         min="0" step="0.01" />
                 </div>
-                <div class="col-md-6">
+                <div class="col-xs-6">
+                    <div class="heading_label">{$btr->sviat__novaposhta_tracking__amount_due|escape}
+                        <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__amount_due_tooltip|escape}">
+                            {include file='svg_icon.tpl' svgId='icon_tooltips'}
+                        </i>
+                    </div>
+                    <input name="amount_due" class="form-control mb-h fn_amount_due" type="number"
+                        value="{if isset($npAmountDueOnPickup)}{$npAmountDueOnPickup|escape}{else}{$order->total_price|escape}{/if}"
+                        min="0" step="0.01" />
+                </div>
+                <div class="col-xs-12">
                     <div class="heading_label">{$btr->sviat__novaposhta_tracking__control_payment|escape}
                         <i class="fn_tooltips"
                             title="{$btr->sviat__novaposhta_tracking__control_payment_tooltip|escape}">
@@ -631,7 +637,8 @@
                             door_delivery: $('#door_delivery_hidden').val(),
                             lifting_floor: $('input[name="lifting_floor"]').val(),
                             control_payment: control_payment,
-                            control_payment_value: $('input[name="cost"]').val(),
+                            announced_value: $('input[name="cost"]').val(),
+                            amount_due_value: $('input[name="amount_due"]').val(),
                             pickup_locker: pickup_locker,
                             delivery_type_address: delivery_type_address,
                             volumetric_volume: $('input[name="volumetric_volume"]').val(),

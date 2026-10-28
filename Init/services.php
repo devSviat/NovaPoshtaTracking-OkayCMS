@@ -18,6 +18,7 @@ use Okay\Helpers\DiscountsHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\BackendExtender;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Extenders\FrontExtender;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaPaymentHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaStatusHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentCronHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Security\AdminIdentity;
@@ -43,7 +44,12 @@ return [
             new SR(NovaPoshtaStatusHelper::class),
             new SR(NovaPoshtaDocumentService::class),
             new SR(BackendTranslations::class),
+            new SR(NovaPoshtaPaymentHelper::class),
         ]
+    ],
+    NovaPoshtaPaymentHelper::class => [
+        'class' => NovaPoshtaPaymentHelper::class,
+        'arguments' => [],
     ],
     FrontExtender::class => [
         'class' => FrontExtender::class,
@@ -82,6 +88,7 @@ return [
             new SR(NovaPoshtaApiHelper::class),
             new SR(BackendOrdersHelper::class),
             new SR(Money::class),
+            new SR(NovaPoshtaPaymentHelper::class),
         ],
     ],
 ];
