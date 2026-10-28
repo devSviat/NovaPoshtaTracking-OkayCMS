@@ -14,6 +14,7 @@ use Okay\Entities\PaymentsEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Entities\NovaPoshtaTrackingEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaPaymentHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentFormatter;
 
 /** Генерація, оновлення та видалення експрес-накладних НП */
@@ -27,6 +28,7 @@ class NovaPoshtaDocumentService
     private $apiHelper;
     private $backendOrdersHelper;
     private $money;
+    private $paymentHelper;
 
     private const array LOCKER_MAX = ['length' => 60, 'width' => 40, 'height' => 30, 'weight' => 20];
     private const array LOCKER_DEFAULTS = ['volume' => '0.001', 'length' => '10', 'width' => '10', 'height' => '10', 'weight' => '0.5'];
@@ -46,7 +48,8 @@ class NovaPoshtaDocumentService
         Request $request,
         NovaPoshtaApiHelper $apiHelper,
         BackendOrdersHelper $backendOrdersHelper,
-        Money $money
+        Money $money,
+        NovaPoshtaPaymentHelper $paymentHelper
     ) {
         $this->entityFactory = $entityFactory;
         $this->settings = $settings;
@@ -54,6 +57,7 @@ class NovaPoshtaDocumentService
         $this->apiHelper = $apiHelper;
         $this->backendOrdersHelper = $backendOrdersHelper;
         $this->money = $money;
+        $this->paymentHelper = $paymentHelper;
     }
 
     /**
@@ -277,6 +281,16 @@ class NovaPoshtaDocumentService
         return $results;
     }
 
+    /** Сума з поля форми або null, якщо поле порожнє чи не передане. */
+    private function amountFromForm($value): ?float
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        return max(0.0, (float) str_replace(',', '.', trim((string) $value)));
+    }
+
     /**
      * Отримує значення з GET або POST запиту
      */
@@ -434,7 +448,8 @@ class NovaPoshtaDocumentService
             'additional_information' => $additionalInformation,
             'recipient_address_note' => $recipientAddressNote,
             'control_payment' => $controlPayment,
-            'control_payment_value' => $this->getRequestParam('control_payment_value'),
+            'announced_value' => $this->getRequestParam('announced_value'),
+            'amount_due_value' => $this->getRequestParam('amount_due_value'),
             'pickup_locker' => $pickupLocker,
             'pickup_locker_from_form' => $pickupLockerFromForm,
             'delivery_type_address' => $isAddressDelivery,
@@ -552,7 +567,7 @@ class NovaPoshtaDocumentService
             $updateData['pickup_locker'] = $formData['pickup_locker'];
 
             // Зберігаємо cost з форми
-            $costFromForm = $this->getRequestParam('control_payment_value');
+            $costFromForm = $this->getRequestParam('announced_value');
             if ($costFromForm !== null && $costFromForm !== '') {
                 $updateData['cost'] = (float)str_replace(',', '.', trim((string)$costFromForm));
             }
@@ -821,15 +836,13 @@ class NovaPoshtaDocumentService
         $date = $this->getShipmentDate();
         $currency = $this->getCurrency();
 
-        // Використовуємо cost з форми (control_payment_value), якщо він є, інакше з order
-        $costFromForm = $this->getRequestParam('control_payment_value');
-        if ($costFromForm !== null && $costFromForm !== '') {
-            $cost = (float)str_replace(',', '.', trim((string)$costFromForm));
-        } elseif (!empty($formData['control_payment_value'])) {
-            $cost = (float)str_replace(',', '.', trim((string)$formData['control_payment_value']));
-        } else {
-            $cost = $this->money->convert($order->total_price, $currency->id, false);
-        }
+        $orderTotal = (float) $this->money->convert($order->total_price, $currency->id, false);
+        $cost = $this->amountFromForm($formData['announced_value'] ?? null) ?? $orderTotal;
+
+        // Масове створення приходить без форми, тож аванс та інші внесені кошти
+        // віднімаються тут, а не лише в полі форми.
+        $formData['amount_due'] = $this->amountFromForm($formData['amount_due_value'] ?? null)
+            ?? $this->paymentHelper->amountDueOnPickup($order, $orderTotal);
 
         return $this->buildDocumentRequest(
             $serviceType,
@@ -1013,8 +1026,8 @@ class NovaPoshtaDocumentService
 
         $this->addAdditionalInformationToRequest($apiRequest, $formData);
         $this->addCargoParamsToRequest($apiRequest, $formData, $volumetricParams, $warehouseParams, $totalWeight, $totalVolume);
-        $this->addPaymentControlToRequest($apiRequest, $formData, $order, $deliveryData);
-        $this->addBackwardDeliveryToRequest($apiRequest, $formData, $deliveryData, $cost);
+        $this->addPaymentControlToRequest($apiRequest, $formData);
+        $this->addBackwardDeliveryToRequest($apiRequest, $formData, $deliveryData);
 
         return $apiRequest;
     }
@@ -1180,26 +1193,26 @@ class NovaPoshtaDocumentService
     /**
      * Додає контроль оплати до API запиту
      */
-    private function addPaymentControlToRequest(array &$apiRequest, array $formData, $order, $deliveryData)
+    private function addPaymentControlToRequest(array &$apiRequest, array $formData)
     {
-        if (($formData['control_payment'] ?? 0) == 1 && ($deliveryData && empty($deliveryData->redelivery))) {
-            $amount = !empty($formData['control_payment_value'])
-                ? round((float)$formData['control_payment_value'])
-                : round($order->undiscounted_total_price);
-            $apiRequest["methodProperties"]["AfterpaymentOnGoodsCost"] = $amount;
+        // Контроль оплати замінює грошовий переказ і для замовлень з redelivery:
+        // НП не приймає обидва разом, а без цього такі посилки їхали без збору грошей.
+        if (($formData['control_payment'] ?? 0) == 1 && ($formData['amount_due'] ?? 0) > 0) {
+            $apiRequest["methodProperties"]["AfterpaymentOnGoodsCost"] = round($formData['amount_due']);
         }
     }
 
     /**
      * Додає зворотну доставку до API запиту
      */
-    private function addBackwardDeliveryToRequest(array &$apiRequest, array $formData, $deliveryData, $cost)
+    private function addBackwardDeliveryToRequest(array &$apiRequest, array $formData, $deliveryData)
     {
-        if ($deliveryData && !empty($deliveryData->redelivery) && ($formData['control_payment'] ?? 0) == 0) {
+        if ($deliveryData && !empty($deliveryData->redelivery) && ($formData['control_payment'] ?? 0) == 0
+            && ($formData['amount_due'] ?? 0) > 0) {
             $apiRequest['methodProperties']['BackwardDeliveryData'][] = [
                 "PayerType" => $this->settings->get('novapost_back_payer_type'),
                 'CargoType' => 'Money',
-                'RedeliveryString' => round($cost),
+                'RedeliveryString' => round($formData['amount_due']),
             ];
         }
     }
@@ -1349,15 +1362,7 @@ class NovaPoshtaDocumentService
     private function addPaymentControl($trackingDocument, $deliveryData, $order)
     {
         if (empty($trackingDocument->AfterpaymentOnGoodsCost) && $deliveryData && ($deliveryData->control_payment ?? 0) == 1) {
-            if ($deliveryData && isset($deliveryData->cost)) {
-                $amount = $deliveryData->cost;
-            } elseif (isset($order->undiscounted_total_price)) {
-                $amount = $order->undiscounted_total_price;
-            } elseif (isset($order->total_price)) {
-                $amount = $order->total_price;
-            } else {
-                $amount = 0;
-            }
+            $amount = $this->paymentHelper->amountDueOnPickup($order, (float) ($order->total_price ?? 0));
             $trackingDocument->AfterpaymentOnGoodsCost = round($amount);
         }
     }

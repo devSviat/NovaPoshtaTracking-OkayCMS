@@ -20,6 +20,7 @@ use Okay\Helpers\DiscountsHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPWarehousesEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaPaymentHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaStatusHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentFormatter;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Services\NovaPoshtaDocumentService;
@@ -40,6 +41,7 @@ class BackendExtender implements ExtensionInterface
     private $statusHelper;
     private $documentService;
     private $backendTranslations;
+    private $paymentHelper;
 
     public function __construct(
         Settings $settings,
@@ -53,7 +55,8 @@ class BackendExtender implements ExtensionInterface
         Languages $languages,
         NovaPoshtaStatusHelper $statusHelper,
         NovaPoshtaDocumentService $documentService,
-        BackendTranslations $backendTranslations
+        BackendTranslations $backendTranslations,
+        NovaPoshtaPaymentHelper $paymentHelper
     ) {
         $this->settings = $settings;
         $this->design = $design;
@@ -67,6 +70,7 @@ class BackendExtender implements ExtensionInterface
         $this->statusHelper = $statusHelper;
         $this->documentService = $documentService;
         $this->backendTranslations = $backendTranslations;
+        $this->paymentHelper = $paymentHelper;
     }
 
     /** Статус накладної та дані для блоку замовлення в адмінці */
@@ -222,9 +226,6 @@ class BackendExtender implements ExtensionInterface
         );
 
         $controlPayment = $this->request->post('control_payment') ? $this->request->post('control_payment', 'int') : 0;
-        if (!empty($order->paid) && $order->paid == 1) {
-            $controlPayment = 0; // для сплаченого замовлення контроль оплати вимкнений
-        }
 
         $deliveryType = $this->request->post('delivery_type_radiobutton');
         $pickupLocker = ($deliveryType === 'locker') ? 1 : 0;
@@ -243,9 +244,13 @@ class BackendExtender implements ExtensionInterface
         $warehouseWeight = $this->request->post('warehouse_weight');
 
         $updateData = [
-            'control_payment' => $controlPayment,
             'pickup_locker' => $pickupLocker,
         ];
+        // Для сплаченого замовлення форма показує контроль вимкненим, але записати цей нуль означало б
+        // залишити його вимкненим і після зняття позначки «сплачено». Вимикає його генерація ТТН.
+        if (empty($order->paid)) {
+            $updateData['control_payment'] = $controlPayment;
+        }
 
         foreach ($normalizedParams as $key => $value) {
             if ($value !== null && $value !== '') {
@@ -318,6 +323,10 @@ class BackendExtender implements ExtensionInterface
                 }
 
                 $this->design->assign('dataNPCostDeliveryDataEntity', $deliveryData);
+                $this->design->assign(
+                    'npAmountDueOnPickup',
+                    $this->paymentHelper->amountDueOnPickup($order, (float) ($order->total_price ?? 0))
+                );
 
                 $pickupLocker = $deliveryData->pickup_locker ?? null;
                 $this->design->assign('pickup_locker', $pickupLocker);
