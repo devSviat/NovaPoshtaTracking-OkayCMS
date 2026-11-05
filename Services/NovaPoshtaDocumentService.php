@@ -14,6 +14,7 @@ use Okay\Entities\PaymentsEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Entities\NovaPoshtaTrackingEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\AddressNames;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\DeliveryDestinationResolver;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\DocumentIssueTranslator;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\DocumentRequestGuard;
@@ -33,6 +34,9 @@ class NovaPoshtaDocumentService
     private $backendOrdersHelper;
     private $money;
     private $paymentHelper;
+
+    /** @var array<string, ?string> Пошук міст і вулиць у межах одного запуску (масове створення). */
+    private array $addressLookups = [];
 
     private const array LOCKER_MAX = ['length' => 60, 'width' => 40, 'height' => 30, 'weight' => 20];
     private const array LOCKER_DEFAULTS = ['volume' => '0.001', 'length' => '10', 'width' => '10', 'height' => '10', 'weight' => '0.5'];
@@ -162,12 +166,13 @@ class NovaPoshtaDocumentService
 
             // Для адресної доставки не потрібен recipientData. Для відділення/поштомату — потрібен контрагент (фіз. особа), крім випадку організації (передаємо рядком).
             $recipientData = null;
+            $isLegalEntity = ($formData['recipient_type'] ?? '') === 'Organization'
+                && $invoicePaymentData
+                && !empty(trim((string)$invoicePaymentData->edrpou))
+                && !empty(trim((string)$invoicePaymentData->company_name));
+            $addressNotice = null;
             if (empty($formData['delivery_type_address'])) {
-                $isLegalEntityToWarehouse = ($formData['recipient_type'] ?? '') === 'Organization'
-                    && $invoicePaymentData
-                    && !empty(trim((string)$invoicePaymentData->edrpou))
-                    && !empty(trim((string)$invoicePaymentData->company_name));
-                if ($isLegalEntityToWarehouse) {
+                if ($isLegalEntity) {
                     $recipientData = [];
                 } else {
                     $recipientData = $this->getRecipientData($order, $phoneFormatted);
@@ -175,6 +180,12 @@ class NovaPoshtaDocumentService
                         return ['error' => 'Recipient contact person not found'];
                     }
                 }
+            } else {
+                // Адреса з довідника НП заповнює поля в редакторі кабінету; текстову
+                // адресу НП приймає, але редактор показує порожньою. Тому текст — запасний шлях.
+                [$recipientData, $addressNotice] = $isLegalEntity
+                    ? [null, 'Для організації адресу передано текстом.']
+                    : $this->resolveRecipientAddress($order, $deliveryData, $formData, $phoneFormatted);
             }
 
             // Формуємо API запит
@@ -223,6 +234,13 @@ class NovaPoshtaDocumentService
                         'message' => $verification['warning'],
                     ];
                 }
+            }
+
+            if ($addressNotice !== null && !empty($response['int_doc_number'])) {
+                $response['warning_issues'][] = [
+                    'field' => 'street',
+                    'message' => $addressNotice . ' У редакторі кабінету НП поля адреси будуть порожні — адреса є лише рядком у ТТН.',
+                ];
             }
 
             if (!empty($response['warning_issues'])) {
@@ -859,6 +877,123 @@ class NovaPoshtaDocumentService
     }
 
     /**
+     * Отримувач і адреса з довідника НП для адресної доставки.
+     *
+     * @return array{0: ?array, 1: ?string} [дані для запиту або null, причина текстової адреси або null]
+     */
+    private function resolveRecipientAddress($order, $deliveryData, array $formData, string $phoneFormatted): array
+    {
+        $names = AddressNames::city(
+            (string)($deliveryData->city_name ?? ''),
+            (string)($deliveryData->area_name ?? ''),
+            (string)($deliveryData->region_name ?? '')
+        );
+        $street = trim((string)($deliveryData->street ?? ''));
+
+        $cityRef = $this->findCityRef(trim((string)($deliveryData->city_id ?? '')), $names['city'], $names['area']);
+        if ($cityRef === null) {
+            return [null, 'Населений пункт «' . $names['city'] . '» не знайдено в довіднику Нової Пошти, тож адресу передано текстом.'];
+        }
+
+        $streetRef = $this->findStreetRef($cityRef, $street);
+        if ($streetRef === null) {
+            return [null, 'Вулицю «' . $street . '» не знайдено в довіднику Нової Пошти однозначно, тож адресу передано текстом.'];
+        }
+
+        $recipient = $this->getRecipientData($order, $phoneFormatted);
+        if (!$recipient) {
+            return [null, 'Нова Пошта не створила контакт отримувача, тож адресу передано текстом.'];
+        }
+
+        $address = $this->apiHelper->sendApiRequest([
+            'apiKey' => $this->settings->get('newpost_key'),
+            'modelName' => 'AddressGeneral',
+            'calledMethod' => 'save',
+            'methodProperties' => [
+                'CounterpartyRef' => $recipient['recipient']->Ref,
+                'StreetRef' => $streetRef,
+                'BuildingNumber' => trim((string)($deliveryData->house ?? '')),
+                'Flat' => trim((string)($deliveryData->apartment ?? '')),
+                'Note' => (string)($formData['recipient_address_note'] ?? ''),
+            ],
+        ]);
+        $addressRef = (string)($address->data[0]->Ref ?? '');
+        if (empty($address->success) || $addressRef === '') {
+            return [null, 'Нова Пошта не прийняла адресу з довідника (' . $this->apiHelper->getErrorMessage($address) . '), тож адресу передано текстом.'];
+        }
+
+        return [$recipient + ['city_ref' => $cityRef, 'address_ref' => $addressRef], null];
+    }
+
+    /**
+     * Ref міста (довідник getCities), який приймає InternetDocument.save.
+     * NovaposhtaCost кладе в city_id або його, або Ref населеного пункту з
+     * searchSettlements — залежно від того, де вибирали місто.
+     */
+    private function findCityRef(string $storedRef, string $cityName, string $area): ?string
+    {
+        $key = 'city|' . $storedRef . '|' . $cityName . '|' . $area;
+        if (array_key_exists($key, $this->addressLookups)) {
+            return $this->addressLookups[$key];
+        }
+
+        $cityRef = null;
+        if ($storedRef !== '') {
+            $cities = $this->apiHelper->sendApiRequest($this->addressRequest('getCities', ['Ref' => $storedRef]), true);
+            if (!empty($cities->success) && ($cities->data[0]->Ref ?? '') === $storedRef) {
+                $cityRef = $storedRef;
+            }
+        }
+
+        if ($cityRef === null && $cityName !== '') {
+            $found = $this->apiHelper->sendApiRequest(
+                $this->addressRequest('searchSettlements', ['CityName' => $cityName, 'Limit' => '50', 'Page' => '1'], 'Address'),
+                true
+            );
+            $settlements = !empty($found->success) ? ($found->data[0]->Addresses ?? []) : [];
+            $byRef = array_filter($settlements, fn ($s) => $storedRef !== '' && ($s->Ref ?? '') === $storedRef);
+            $byName = array_filter($settlements, fn ($s) => AddressNames::normalize((string)($s->MainDescription ?? '')) === AddressNames::normalize($cityName)
+                && ($area === '' || AddressNames::normalize((string)($s->Area ?? '')) === AddressNames::normalize($area)));
+            $match = $byRef ?: (count($byName) === 1 ? $byName : []);
+            $deliveryCity = $match ? (string)(reset($match)->DeliveryCity ?? '') : '';
+            $cityRef = $deliveryCity !== '' ? $deliveryCity : null;
+        }
+
+        return $this->addressLookups[$key] = $cityRef;
+    }
+
+    private function findStreetRef(string $cityRef, string $street): ?string
+    {
+        $core = AddressNames::streetCore($street);
+        if ($core === '') {
+            return null;
+        }
+
+        $key = 'street|' . $cityRef . '|' . AddressNames::normalize($street);
+        if (array_key_exists($key, $this->addressLookups)) {
+            return $this->addressLookups[$key];
+        }
+
+        $found = $this->apiHelper->sendApiRequest(
+            $this->addressRequest('getStreet', ['CityRef' => $cityRef, 'FindByString' => $core, 'Limit' => '50', 'Page' => '1']),
+            true
+        );
+        $candidates = !empty($found->success) && is_array($found->data ?? null) ? $found->data : [];
+
+        return $this->addressLookups[$key] = AddressNames::pickStreet($candidates, $street);
+    }
+
+    private function addressRequest(string $method, array $properties, string $model = 'AddressGeneral'): array
+    {
+        return [
+            'apiKey' => $this->settings->get('newpost_key'),
+            'modelName' => $model,
+            'calledMethod' => $method,
+            'methodProperties' => $properties,
+        ];
+    }
+
+    /**
      * Формує API запит залежно від типу доставки
      */
     private function buildApiRequest(
@@ -972,9 +1107,11 @@ class NovaPoshtaDocumentService
         $isAddressDelivery = $serviceType === 'WarehouseDoors';
         $isWarehouseDelivery = $serviceType === 'WarehouseWarehouse';
 
-        // Для адресної доставки отримуємо тип населеного пункту
+        $addressByRef = $isAddressDelivery && !empty($recipientData['address_ref']);
+
+        // Тип населеного пункту потрібен лише текстовій адресі
         $settlementType = '';
-        if ($isAddressDelivery && $deliveryData && !empty($deliveryData->city_id)) {
+        if ($isAddressDelivery && !$addressByRef && $deliveryData && !empty($deliveryData->city_id)) {
             $settlementType = $this->getSettlementTypeByCityRef(
                 $deliveryData->city_id,
                 $deliveryData->city_name ?? null
@@ -1008,16 +1145,34 @@ class NovaPoshtaDocumentService
         ];
 
         // Параметри отримувача залежно від типу доставки
-        if ($isAddressDelivery) {
-            // Адресна доставка (рядком) - використовуємо InternetDocumentGeneral
+        if ($addressByRef) {
+            // З NewAddress=1 НП чекає адресу текстом і відкидає Ref («RecipientAddressName is empty»).
+            // Коментар до адреси вже записаний в саму адресу (AddressGeneral.save).
+            unset($methodProperties["NewAddress"]);
+            $methodProperties["CityRecipient"] = $recipientData['city_ref'];
+            $methodProperties["RecipientAddress"] = $recipientData['address_ref'];
+            $methodProperties["Recipient"] = $recipientData['recipient']->Ref;
+            $methodProperties["ContactRecipient"] = $recipientData['contact_person']->Ref;
+            $methodProperties["RecipientType"] = "PrivatePerson";
+
+            if ($formData['door_delivery'] == 1 && !empty($formData['lifting_floor'])) {
+                $methodProperties["NumberOfFloorsLifting"] = (string)$formData['lifting_floor'];
+            }
+        } elseif ($isAddressDelivery) {
+            // Текстова адреса: НП приймає, але редактор кабінету показує поля порожніми
             $recipientFullName = trim(($order->last_name ?? '') . ' ' . ($order->name ?? ''));
+            $city = AddressNames::city(
+                (string)($deliveryData->city_name ?? ''),
+                (string)($deliveryData->area_name ?? ''),
+                (string)($deliveryData->region_name ?? '')
+            );
 
             $methodProperties["RecipientAddressNote"] = !empty($formData['recipient_address_note'])
                 ? mb_substr(trim($formData['recipient_address_note']), 0, 50)
                 : '';
-            $methodProperties["RecipientCityName"] = $deliveryData->city_name ?? '';
-            $methodProperties["RecipientArea"] = $deliveryData->area_name ?? '';
-            $methodProperties["RecipientAreaRegions"] = $deliveryData->region_name ?? '';
+            $methodProperties["RecipientCityName"] = $city['city'];
+            $methodProperties["RecipientArea"] = $city['area'];
+            $methodProperties["RecipientAreaRegions"] = $city['region'];
             $methodProperties["RecipientAddressName"] = $deliveryData->street ?? '';
             $methodProperties["RecipientHouse"] = $deliveryData->house ?? '';
             $methodProperties["RecipientFlat"] = $deliveryData->apartment ?? '';

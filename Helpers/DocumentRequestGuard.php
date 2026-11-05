@@ -15,13 +15,19 @@ final class DocumentRequestGuard
         }
         $service = (string)($props['ServiceType'] ?? '');
         if ($service === 'WarehouseDoors') {
-            foreach (['RecipientCityName', 'RecipientAddressName', 'RecipientHouse'] as $key) {
+            // Адреса або з довідника (Ref міста + Ref адреси), або текстом — не обидва разом.
+            $hasRefs = !empty($props['RecipientAddress']) || !empty($props['CityRecipient']);
+            $hasText = !empty($props['RecipientCityName']) || !empty($props['RecipientAddressName']) || !empty($props['RecipientHouse']);
+            if ($hasRefs && $hasText) {
+                return 'ServiceType: адресна доставка містить і адресу текстом, і Ref міста чи пункту. ТТН не відправлено.';
+            }
+            $required = $hasRefs
+                ? ['CityRecipient', 'RecipientAddress', 'Recipient', 'ContactRecipient']
+                : ['RecipientCityName', 'RecipientAddressName', 'RecipientHouse'];
+            foreach ($required as $key) {
                 if (trim((string)($props[$key] ?? '')) === '') {
                     return $key . ' is required for address delivery';
                 }
-            }
-            if (!empty($props['RecipientAddress']) || !empty($props['CityRecipient'])) {
-                return 'ServiceType: адресна доставка містить відділення/місто зі складської доставки. ТТН не відправлено.';
             }
         } elseif ($service === 'WarehouseWarehouse') {
             foreach (['CityRecipient', 'RecipientAddress'] as $key) {

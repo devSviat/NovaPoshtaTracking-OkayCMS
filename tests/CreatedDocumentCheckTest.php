@@ -45,8 +45,42 @@ class CreatedDocumentCheckTest extends TestCase
     {
         $document = $this->addressDocument();
         $document->CityRecipientRef = '8d5a980d-391c-11dd-90d9-001a92567626';
+        $document->CityRecipient = 'Київ';
 
         $this->assertSame('mismatch', RecipientAddressAudit::inspect($document, 'WarehouseDoors', $this->order())['status']);
+    }
+
+    /**
+     * Курʼєрське замовлення часто зберігає Ref населеного пункту (searchSettlements),
+     * а getDocument повертає Ref міста. Перша версія звірки бачила тут розбіжність.
+     */
+    public function testSettlementRefWithSameCityNameIsVerified(): void
+    {
+        $order = $this->order();
+        $order->city_id = 'e71abb60-4b33-11e4-ab6d-005056801329';
+
+        $this->assertSame('verified', RecipientAddressAudit::inspect($this->addressDocument(), 'WarehouseDoors', $order)['status']);
+    }
+
+    public function testCityFromSuggestionTextIsComparedByName(): void
+    {
+        $order = $this->order();
+        $order->city_id = 'e71abb60-4b33-11e4-ab6d-005056801329';
+        $order->city_name = 'м. Львів, Львівська обл.';
+
+        $this->assertSame('verified', RecipientAddressAudit::inspect($this->addressDocument(), 'WarehouseDoors', $order)['status']);
+    }
+
+    /** Адреса з довідника: НП пише тип після назви — «Свободи просп. 20 кв. 3». */
+    public function testDirectoryAddressWithTypeAfterNameIsVerified(): void
+    {
+        $document = $this->addressDocument();
+        $document->RecipientAddress = 'Свободи просп. 20 кв. 3 Під’їзд 2';
+        $order = $this->order();
+        $order->street = 'просп. Свободи';
+        $order->house = '20';
+
+        $this->assertSame('verified', RecipientAddressAudit::inspect($document, 'WarehouseDoors', $order)['status']);
     }
 
     public function testAddressWithoutRefNeedsReview(): void
