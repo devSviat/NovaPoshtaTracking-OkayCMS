@@ -121,6 +121,26 @@ class AddressByReferenceTest extends TestCase
         $this->assertSame(self::CITY, $recipient['city_ref']);
     }
 
+    /** Назву населеного пункту для пошуку беремо з довідника за Ref, а не з замовлення. */
+    #[DataProvider('brokenCityNameProvider')]
+    public function testSettlementIsFoundByRefWhateverTheStoredName(string $storedName): void
+    {
+        $service = $this->service($this->api(cityIsSettlement: true));
+        [$recipient] = $this->resolve($service, ['city_id' => self::SETTLEMENT, 'city_name' => $storedName, 'area_name' => ''] + $this->delivery());
+
+        $this->assertSame(self::CITY, $recipient['city_ref'] ?? null);
+        $this->assertSame('Львів', $this->callsTo('Address', 'searchSettlements')[0]['methodProperties']['CityName']);
+    }
+
+    public static function brokenCityNameProvider(): array
+    {
+        return [
+            'порожня'             => [''],
+            'латиницею'           => ['Lviv'],
+            'текст підказки'      => ['м. Львів, Львівська обл.'],
+        ];
+    }
+
     public function testUnknownStreetFallsBackToTextWithNotice(): void
     {
         $service = $this->service($this->api(streetFound: false));
@@ -186,6 +206,8 @@ class AddressByReferenceTest extends TestCase
             $p = $request['methodProperties'];
             return match ($request['modelName'] . '.' . $request['calledMethod']) {
                 'AddressGeneral.getCities' => (object) ['success' => true, 'data' => $cityIsSettlement ? [] : [(object) ['Ref' => $p['Ref']]]],
+                'AddressGeneral.getSettlements' => (object) ['success' => true, 'data' => ($p['Ref'] ?? '') === self::SETTLEMENT
+                    ? [(object) ['Ref' => self::SETTLEMENT, 'Description' => 'Львів', 'AreaDescription' => 'Львівська']] : []],
                 'Address.searchSettlements' => (object) ['success' => true, 'data' => [(object) ['Addresses' => [
                     (object) ['Ref' => self::SETTLEMENT, 'DeliveryCity' => self::CITY, 'MainDescription' => 'Львів', 'Area' => 'Львівська'],
                 ]]]],

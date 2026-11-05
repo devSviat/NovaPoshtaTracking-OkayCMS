@@ -71,6 +71,17 @@ class CreatedDocumentCheckTest extends TestCase
         $this->assertSame('verified', RecipientAddressAudit::inspect($this->addressDocument(), 'WarehouseDoors', $order)['status']);
     }
 
+    /** Модуль сам знайшов Ref міста: звіряємо з ним, а не з назвою в замовленні («Lviv»). */
+    public function testResolvedCityRefWinsOverStoredName(): void
+    {
+        $order = $this->order();
+        $order->city_id = 'e71abb60-4b33-11e4-ab6d-005056801329';
+        $order->city_name = 'Lviv';
+
+        $this->assertSame('verified', RecipientAddressAudit::inspect($this->addressDocument(), 'WarehouseDoors', $order, self::CITY)['status']);
+        $this->assertSame('mismatch', RecipientAddressAudit::inspect($this->addressDocument(), 'WarehouseDoors', $order, '8d5a980d-391c-11dd-90d9-001a92567626')['status']);
+    }
+
     /** Адреса з довідника: НП пише тип після назви — «Свободи просп. 20 кв. 3». */
     public function testDirectoryAddressWithTypeAfterNameIsVerified(): void
     {
