@@ -36,9 +36,14 @@ final class RecipientAddressAudit
             ];
         }
 
+        // NovaposhtaCost кладе в city_id то Ref міста, то Ref населеного пункту,
+        // а getDocument повертає Ref міста — тож при різних Ref звіряємо назву.
         $expectedCityRef = self::text($localDelivery->city_id ?? null);
         $actualCityRef = self::text($document->CityRecipientRef ?? null);
-        if ($expectedCityRef !== '' && $actualCityRef !== '' && strcasecmp($expectedCityRef, $actualCityRef) !== 0) {
+        $sameRef = $expectedCityRef !== '' && strcasecmp($expectedCityRef, $actualCityRef) === 0;
+        $expectedCity = AddressNames::normalize(AddressNames::city(self::text($localDelivery->city_name ?? null))['city']);
+        $actualCity = AddressNames::normalize(self::text($document->CityRecipient ?? null));
+        if (!$sameRef && $expectedCity !== '' && $actualCity !== '' && $expectedCity !== $actualCity) {
             return [
                 'status' => 'mismatch',
                 'warning' => 'Населений пункт у ТТН (' . self::text($document->CityRecipient ?? null) . ') не збігається із замовленням. Перевірте адресу до відправлення.',
@@ -57,9 +62,9 @@ final class RecipientAddressAudit
             ];
         }
 
-        $address = self::normalize(self::text($document->RecipientAddress ?? null));
-        $street = self::normalize(self::stripStreetPrefix(self::text($localDelivery->street ?? null)));
-        $house = self::normalize(self::text($localDelivery->house ?? null));
+        $address = AddressNames::normalize(self::text($document->RecipientAddress ?? null));
+        $street = AddressNames::streetCore(self::text($localDelivery->street ?? null));
+        $house = AddressNames::normalize(self::text($localDelivery->house ?? null));
         if ($street !== '' && !str_contains($address, $street)
             || $house !== '' && !preg_match('/(^|[^\p{L}\p{N}])' . preg_quote($house, '/') . '($|[^\p{L}\p{N}])/u', $address)
         ) {
@@ -81,16 +86,5 @@ final class RecipientAddressAudit
     private static function text($value): string
     {
         return is_scalar($value) ? trim((string)$value) : '';
-    }
-
-    private static function stripStreetPrefix(string $value): string
-    {
-        return preg_replace('/^(?:вул\.|вулиця)\s*/iu', '', $value) ?? $value;
-    }
-
-    private static function normalize(string $value): string
-    {
-        $value = preg_replace('/\s+/u', ' ', trim($value)) ?? trim($value);
-        return mb_strtolower($value, 'UTF-8');
     }
 }
