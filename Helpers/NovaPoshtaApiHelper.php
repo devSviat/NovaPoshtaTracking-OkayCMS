@@ -288,7 +288,7 @@ class NovaPoshtaApiHelper
         // Всі спроби невдалі - повертаємо об'єкт з помилкою для сумісності
         $errorResponse = new \stdClass();
         $errorResponse->success = false;
-        $errorResponse->errors = $apiErrors ?: [$lastError ?? 'Request failed after ' . ($maxRetries + 1) . ' attempts'];
+        $errorResponse->errors = $apiErrors ?: [$lastError];
         $errorResponse->uncertain = $isMutation && $attempt > 0;
         if ($errorResponse->uncertain) {
             $errorResponse->errors[] = 'Результат невизначений: перед повторною спробою перевірте в кабінеті Нової пошти, чи операцію вже виконано.';

@@ -685,10 +685,10 @@ class NovaPoshtaDocumentService
             if (!$deliveryData || empty($deliveryData->city_name)) {
                 return 'Empty client city name for address delivery';
             }
-            if (!$deliveryData || empty($deliveryData->street)) {
+            if (empty($deliveryData->street)) {
                 return 'Empty client street for address delivery';
             }
-            if (!$deliveryData || trim((string)($deliveryData->house ?? '')) === '') {
+            if (trim((string)($deliveryData->house ?? '')) === '') {
                 return 'Empty client house for address delivery';
             }
         } else {
@@ -696,7 +696,7 @@ class NovaPoshtaDocumentService
             if (!$deliveryData || empty($deliveryData->city_id)) {
                 return 'Empty client city';
             }
-            if (!$deliveryData || empty($deliveryData->warehouse_id)) {
+            if (empty($deliveryData->warehouse_id)) {
                 return 'Empty client warehouse';
             }
         }
