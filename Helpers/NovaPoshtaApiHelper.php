@@ -197,11 +197,17 @@ class NovaPoshtaApiHelper
     /**
      * Відправка запиту до API Нової Пошти з оптимізацією та обробкою помилок
      */
-    public function sendApiRequest($request = [], $useCache = false)
+    public function sendApiRequest($request = [], $useCache = false, ?int $maxRetriesOverride = null)
     {
         if (empty($request)) {
             return false;
         }
+
+        // save/update/delete змінюють дані в НП: після таймауту операція могла
+        // пройти, тому їх не кешуємо й не повторюємо автоматично.
+        $isMutation = in_array(strtolower((string)($request['calledMethod'] ?? '')), ['save', 'update', 'delete'], true);
+        $maxRetries = $isMutation ? 0 : ($maxRetriesOverride === null ? self::MAX_RETRIES : max(0, min(self::MAX_RETRIES, $maxRetriesOverride)));
+        $useCache = $useCache && !$isMutation;
 
         // Перевіряємо кеш для запитів, які можна кешувати
         if ($useCache) {
@@ -215,9 +221,10 @@ class NovaPoshtaApiHelper
         $requestJson = json_encode($request);
         $attempt = 0;
         $lastError = null;
+        $apiErrors = [];
 
         // Retry логіка
-        while ($attempt <= self::MAX_RETRIES) {
+        while ($attempt <= $maxRetries) {
             // Використовуємо статичний curl handle для reuse connection (оптимізація)
             if (self::$curlHandle === null) {
                 self::$curlHandle = curl_init();
@@ -227,8 +234,8 @@ class NovaPoshtaApiHelper
                     CURLOPT_POST => true,
                     CURLOPT_TIMEOUT => self::REQUEST_TIMEOUT,
                     CURLOPT_CONNECTTIMEOUT => 5,
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_SSL_VERIFYHOST => false,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2,
                     CURLOPT_FRESH_CONNECT => false,
                     CURLOPT_FORBID_REUSE => false,
                 ]);
@@ -259,9 +266,11 @@ class NovaPoshtaApiHelper
                         $this->setCache($cacheKey, $decoded);
                     }
                     return $decoded;
-                } elseif ($decoded && isset($decoded->errors) && !empty($decoded->errors)) {
+                } elseif ($decoded && (isset($decoded->errors) && !empty($decoded->errors)
+                    || !empty($decoded->errorMessage) || !empty($decoded->error))) {
                     // API повернув помилку, але це не помилка мережі
-                    $lastError = $decoded->errors[0] ?? 'Unknown API error';
+                    $apiErrors = $this->getErrorMessages($decoded);
+                    $lastError = $apiErrors[0] ?? 'Unknown API error';
                     break; // Не повторюємо запит при помилках API
                 }
             }
@@ -271,7 +280,7 @@ class NovaPoshtaApiHelper
             $attempt++;
 
             // Невелика затримка перед повторною спробою
-            if ($attempt <= self::MAX_RETRIES) {
+            if ($attempt <= $maxRetries) {
                 usleep(500000); // 0.5 секунди
             }
         }
@@ -279,35 +288,48 @@ class NovaPoshtaApiHelper
         // Всі спроби невдалі - повертаємо об'єкт з помилкою для сумісності
         $errorResponse = new \stdClass();
         $errorResponse->success = false;
-        $errorResponse->errors = [$lastError ?? 'Request failed after ' . self::MAX_RETRIES . ' attempts'];
+        $errorResponse->errors = $apiErrors ?: [$lastError ?? 'Request failed after ' . ($maxRetries + 1) . ' attempts'];
+        $errorResponse->uncertain = $isMutation && $attempt > 0;
+        if ($errorResponse->uncertain) {
+            $errorResponse->errors[] = 'Результат невизначений: перед повторною спробою перевірте в кабінеті Нової пошти, чи операцію вже виконано.';
+        }
         $errorResponse->data = [];
 
         return $errorResponse;
     }
 
-    /** Текст помилки з відповіді API (різні формати errors/errorMessage/error) */
-    public function getErrorMessage($response): string
+    /** @return list<string> Повний список текстових помилок API, не лише перша. */
+    public function getErrorMessages($response): array
     {
-        $errorMessages = [];
-
         if (is_array($response)) {
             $response = (object)$response;
         }
-
-        if (!empty($response->errors) && is_array($response->errors)) {
-            foreach ($response->errors as $key => $error) {
-                $errorMessages[] = is_numeric($key) ? $error : ($key . ' - ' . $error);
-            }
-        } elseif (!empty($response->errorMessage)) {
-            $errorMessages[] = $response->errorMessage;
-        } elseif (!empty($response->error)) {
-            $errorMessages[] = is_string($response->error) ? $response->error : json_encode($response->error);
-        } elseif (!empty($response->errors) && is_string($response->errors)) {
-            $errorMessages[] = $response->errors;
-        } else {
-            $errorMessages[] = 'Unknown API error';
+        if (!is_object($response)) {
+            return ['Невідома помилка відповіді Нової пошти.'];
         }
+        $result = [];
+        $errors = $response->errors ?? null;
+        if (is_array($errors)) {
+            foreach ($errors as $key => $error) {
+                $message = is_scalar($error) ? trim((string)$error) : '';
+                if ($message !== '') {
+                    $result[] = is_string($key) ? $key . ': ' . $message : $message;
+                }
+            }
+        } elseif (is_string($errors) && trim($errors) !== '') {
+            $result[] = trim($errors);
+        }
+        foreach (['errorMessage', 'error'] as $property) {
+            $message = $response->{$property} ?? null;
+            if (is_scalar($message) && trim((string)$message) !== '') {
+                $result[] = trim((string)$message);
+            }
+        }
+        return array_values(array_unique($result ?: ['Нова пошта не повернула пояснення помилки.']));
+    }
 
-        return implode('; ', $errorMessages);
+    public function getErrorMessage($response): string
+    {
+        return implode('; ', $this->getErrorMessages($response));
     }
 }

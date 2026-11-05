@@ -9,14 +9,18 @@
                 <div class="col-md-12">
                     <div class="heading_label">{$btr->sviat__novaposhta_tracking__delivery_type|escape}</div>
                     <div id="delivery_type" class="row">
-                        {assign var="is_warehouse_empty" value=empty($dataNPCostDeliveryDataEntity->warehouse_id)}
-                        {if !$is_warehouse_empty}
+                        {* Обраний тип рахує DeliveryDestinationResolver (np_delivery_mode) —
+                           той самий, що й при створенні ТТН. *}
+                        {assign var="np_has_address" value=false}
+                        {if !empty($dataNPCostDeliveryDataEntity->city_name) AND !empty($dataNPCostDeliveryDataEntity->street)}
+                            {assign var="np_has_address" value=true}
+                        {/if}
+                        {assign var="np_has_warehouse" value=!empty($dataNPCostDeliveryDataEntity->warehouse_id)}
+                        {if $np_has_warehouse}
                         <div class="col-md-6">
                             <div class="okay_type_radio_wrap">
-                                <input id="delivery_type_warehouse" class="hidden_check"
-                                    name="delivery_type_radiobutton" type="radio" value="warehouse"
-                                    {if (!isset($dataNPCostDeliveryDataEntity->pickup_locker) OR ($dataNPCostDeliveryDataEntity->pickup_locker != 1)) AND (!isset($pickup_locker) OR ($pickup_locker != 1)) AND (empty($dataNPCostDeliveryDataEntity->city_name) OR empty($dataNPCostDeliveryDataEntity->street))}checked=""
-                                    {/if} />
+                                <input id="delivery_type_warehouse" class="hidden_check" name="delivery_type_radiobutton"
+                                    type="radio" value="warehouse" {if $np_delivery_mode == 'warehouse'}checked=""{/if} />
                                 <label for="delivery_type_warehouse" class="okay_type_radio">
                                     <span>{$btr->sviat__novaposhta_tracking__warehouse|escape}</span>
                                 </label>
@@ -25,30 +29,31 @@
                         <div class="col-md-6">
                             <div class="okay_type_radio_wrap">
                                 <input id="delivery_type_locker" class="hidden_check" name="delivery_type_radiobutton"
-                                    type="radio" value="locker"
-                                    {if (isset($dataNPCostDeliveryDataEntity->pickup_locker) AND ($dataNPCostDeliveryDataEntity->pickup_locker == 1)) OR (isset($pickup_locker) AND ($pickup_locker == 1))}checked=""
-                                    {/if} />
+                                    type="radio" value="locker" {if $np_delivery_mode == 'locker'}checked=""{/if} />
                                 <label for="delivery_type_locker" class="okay_type_radio">
                                     <span>{$btr->sviat__novaposhta_tracking__locker|escape}
-                                        <i class="fn_tooltips"
-                                            title="{$btr->sviat__novaposhta_tracking__locker_tooltip|escape}">
+                                        <i class="fn_tooltips" title="{$btr->sviat__novaposhta_tracking__locker_tooltip|escape}">
                                             {include file='svg_icon.tpl' svgId='icon_tooltips'}
                                         </i>
                                     </span>
                                 </label>
                             </div>
                         </div>
-                        {else}
+                        {/if}
+                        {if $np_has_address}
                         <div class="col-md-12">
                             <div class="okay_type_radio_wrap">
                                 <input id="delivery_type_address" class="hidden_check" name="delivery_type_radiobutton"
-                                    type="radio" value="address"
-                                    {if (!isset($dataNPCostDeliveryDataEntity->pickup_locker) OR ($dataNPCostDeliveryDataEntity->pickup_locker != 1)) AND (!isset($pickup_locker) OR ($pickup_locker != 1)) AND (!empty($dataNPCostDeliveryDataEntity->city_name) AND !empty($dataNPCostDeliveryDataEntity->street))}checked=""
-                                    {/if} />
+                                    type="radio" value="address" {if $np_delivery_mode == 'address'}checked=""{/if} />
                                 <label for="delivery_type_address" class="okay_type_radio">
                                     <span>{$btr->sviat__novaposhta_tracking__address_delivery|escape}</span>
                                 </label>
                             </div>
+                        </div>
+                        {/if}
+                        {if $np_delivery_mode_error}
+                        <div class="col-md-12">
+                            <div class="boxed boxed_warning mb-1">{$np_delivery_mode_error|escape}</div>
                         </div>
                         {/if}
                     </div>
@@ -86,7 +91,7 @@
 
             {* Доставка до дверей (тільки для адресної доставки) *}
             <div id="door_delivery_block" class="row mb-h"
-                style="display: {if !empty($dataNPCostDeliveryDataEntity->city_name) AND !empty($dataNPCostDeliveryDataEntity->street)}block{else}none{/if};">
+                style="display: {if $np_delivery_mode == 'address'}block{else}none{/if};">
                 <div class="col-md-12">
                     <div class="row">
                         <div class="col-md-6">
@@ -122,7 +127,7 @@
 
             {* Габарити для відділення та адресної доставки *}
             <div id="warehouse_params" class="row"
-                style="display: {if isset($dataNPCostDeliveryDataEntity->pickup_locker) AND ($dataNPCostDeliveryDataEntity->pickup_locker == 1)}none{else}block{/if};">
+                style="display: {if $np_delivery_mode == 'locker'}none{else}block{/if};">
                 <div class="col-md-12">
                     <div class="heading_label mb-h">{$btr->sviat__novaposhta_tracking__cargo_params|escape}</div>
                     <div class="row">
@@ -150,7 +155,7 @@
 
             {* Габарити для поштомату *}
             <div id="volumetric_params" class="row"
-                style="display: {if isset($dataNPCostDeliveryDataEntity->pickup_locker) AND ($dataNPCostDeliveryDataEntity->pickup_locker == 1)}block{else}none{/if};">
+                style="display: {if $np_delivery_mode == 'locker'}block{else}none{/if};">
                 <div class="col-md-12">
                     <div class="heading_label mb-h">{$btr->sviat__novaposhta_tracking__cargo_params_locker|escape}</div>
                     <div class="row">
@@ -282,7 +287,7 @@
     </div>
 
     {* Коментар до адреси (тільки для адресної доставки) *}
-    <div id="recipient_address_note_block" class="form-group" style="display: {if !empty($dataNPCostDeliveryDataEntity->city_name) AND !empty($dataNPCostDeliveryDataEntity->street)}block{else}none{/if};">
+    <div id="recipient_address_note_block" class="form-group" style="display: {if $np_delivery_mode == 'address'}block{else}none{/if};">
         <div class="heading_label">
             <span>
                 {$btr->sviat__novaposhta_tracking__address_comment|escape}
@@ -469,11 +474,23 @@
                 attach_exists: "{$btr->sviat__novaposhta_tracking__attach_already|escape:'javascript'}",
                 attach_not_found: "{$btr->sviat__novaposhta_tracking__attach_not_found|escape:'javascript'}",
                 attach_elsewhere: "{$btr->sviat__novaposhta_tracking__attach_elsewhere|escape:'javascript'}",
-                attach_invalid: "{$btr->sviat__novaposhta_tracking__attach_invalid|escape:'javascript'}"
+                attach_invalid: "{$btr->sviat__novaposhta_tracking__attach_invalid|escape:'javascript'}",
+                issues_title: "{$btr->sviat__novaposhta_tracking__issues_title|escape:'javascript'}",
+                issues_toast: "{$btr->sviat__novaposhta_tracking__issues_toast|escape:'javascript'}",
+                issues_unrecognized: "{$btr->sviat__novaposhta_tracking__issues_unrecognized|escape:'javascript'}",
+                issues_no_confirmation: "{$btr->sviat__novaposhta_tracking__issues_no_confirmation|escape:'javascript'}",
+                issues_connection: "{$btr->sviat__novaposhta_tracking__issues_connection|escape:'javascript'}",
+                issues_jump: "{$btr->sviat__novaposhta_tracking__issues_jump|escape:'javascript'}",
+                issues_open_ttn: "{$btr->sviat__novaposhta_tracking__issues_open_ttn|escape:'javascript'}",
+                created_with_warnings: "{$btr->sviat__novaposhta_tracking__created_with_warnings|escape:'javascript'}",
+                delivery_mode_missing: "{$btr->sviat__novaposhta_tracking__delivery_mode_missing|escape:'javascript'}"
             };
         </script>
         <div class="fn_delivery_novaposhta" style="display: block;">
-            <div class="fn_error hidden boxed boxed_warning"></div>
+            <div id="np_document_feedback" class="np-document-feedback hidden" role="alert" aria-live="assertive" tabindex="-1">
+                <strong class="np-document-feedback__title"></strong>
+                <ul class="np-document-feedback__list"></ul>
+            </div>
             {* Виписану вручну накладну треба не створювати, а привʼязати за
                номером. Поле під кнопкою, бо потрібне рідше за створення. *}
             {assign var="np_has_document" value=!empty($novaposhta_delivery_data->int_doc_number)}
@@ -593,6 +610,93 @@
                     }
                 }
 
+                // Текст із сервера вставляється лише через .text(): він може містити
+                // оригінал помилки НП.
+                function showDocumentIssues(items, title, severity, documentRef) {
+                    var $box = $('#np_document_feedback');
+                    var $list = $box.find('.np-document-feedback__list').empty();
+                    $box.removeClass('hidden np-document-feedback--warning np-document-feedback--error')
+                        .addClass(severity === 'warning' ? 'np-document-feedback--warning' : 'np-document-feedback--error');
+                    $box.find('.np-document-feedback__title').text(title);
+                    var issues = Array.isArray(items) ? items : [];
+                    if (!issues.length) {
+                        issues = [{ field: 'general', message: window.npDocumentFormT.unknown_error }];
+                    }
+                    issues.forEach(function(item) {
+                        var field = typeof item.field === 'string' ? item.field : 'general';
+                        var message = typeof item.message === 'string' ? item.message : String(item.message || '');
+                        var $entry = $('<li>').addClass('np-document-feedback__item');
+                        $('<span>').text(message).appendTo($entry);
+                        if (field !== 'general' && field !== 'api') {
+                            $('<button type="button">').addClass('np-document-feedback__jump')
+                                .text(window.npDocumentFormT.issues_jump)
+                                .attr('data-np-field', field).appendTo($entry);
+                        }
+                        $list.append($entry);
+                    });
+                    // Ref іде в URL, тому пропускаємо лише формат UUID.
+                    if (/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(String(documentRef || ''))) {
+                        $('<li>').addClass('np-document-feedback__item').append(
+                            $('<a>').attr({ href: 'https://new.novaposhta.ua/edit/' + documentRef, target: '_blank', rel: 'noopener noreferrer' })
+                                .text(window.npDocumentFormT.issues_open_ttn)
+                        ).appendTo($list);
+                    }
+                    $box[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    $box.trigger('focus');
+                }
+
+                function clearDocumentIssues() {
+                    $('#np_document_feedback').addClass('hidden').find('.np-document-feedback__list').empty();
+                    $('.np-document-field-error').removeClass('np-document-field-error');
+                }
+
+                // Адреса й відділення редагуються в блоці доставки NovaposhtaCost
+                // (order_contact_block.tpl), а не у формі ТТН.
+                function jumpToDocumentField(field) {
+                    var selectors = {
+                        delivery_mode: ['#delivery_type', '[name="delivery_id"]'],
+                        city: ['input[name="novaposhta_city"]', '.fn_newpost_city_name', '[name="delivery_id"]'],
+                        street: ['input[name="novaposhta_street"]', '[name="delivery_id"]'],
+                        house: ['input[name="novaposhta_house"]', '[name="delivery_id"]'],
+                        apartment: ['input[name="novaposhta_apartment"]', '[name="delivery_id"]'],
+                        warehouse: ['select[name="novaposhta_warehouse"]', '.warehouses_novaposhta', '[name="delivery_id"]'],
+                        phone: ['input[name="phone"]'],
+                        recipient_name: ['input[name="name"]', 'input[name="last_name"]'],
+                        cargo_type: ['#cargo_type'],
+                        payer_type: ['input[name="payer_type_radiobutton"]:checked', '[name="payer_type_radiobutton"]'],
+                        payment_method: ['input[name="payment_method_radiobutton"]:checked', '[name="payment_method_radiobutton"]'],
+                        control_payment: ['#control_payment_checkbox'],
+                        weight: ['input[name="warehouse_weight"]', 'input[name="volumetric_weight"]'],
+                        volume: ['#warehouse_volume', 'input[name="volumetric_volume"]'],
+                        cost: ['.fn_cost'],
+                        delivery_date: ['#fn_generate_document'],
+                        sender: ['#fn_generate_document'],
+                        sender_warehouse: ['#fn_generate_document'],
+                        api_key: ['#fn_generate_document']
+                    };
+                    var $target = $();
+                    (selectors[field] || ['#delivery_type']).some(function(selector) {
+                        var $candidates = $(selector).filter(':visible');
+                        if ($candidates.length) { $target = $candidates.first(); return true; }
+                        return false;
+                    });
+                    if (!$target.length) {
+                        $target = $('#delivery_type:visible, .delivery_novaposhta_document:visible').first();
+                    }
+                    if (!$target.length) { return; }
+                    $('.np-document-field-error').removeClass('np-document-field-error');
+                    var $highlight = $target.is(':radio') ? $target.closest('.okay_type_radio_wrap') : $target;
+                    $highlight.addClass('np-document-field-error');
+                    $target[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if ($target.is('input:not([type="hidden"]):not([type="radio"]), select, textarea')) {
+                        $target.trigger('focus');
+                    }
+                }
+
+                $(document).on('click', '.np-document-feedback__jump', function() {
+                    jumpToDocumentField($(this).attr('data-np-field'));
+                });
+
                 // Створення накладної
                 $('#fn_generate_document').on('click', function(e) {
                     e.preventDefault();
@@ -604,6 +708,7 @@
                     
                     const $buttonText = $button.find('.btn-text');
                     const $buttonLoader = $button.find('.btn-loader');
+                    clearDocumentIssues();
                     toggleLoading($button, $buttonText, $buttonLoader, true);
                     
                     // Якщо замовлення сплачене, контроль оплати має бути вимкнений
@@ -614,6 +719,11 @@
                     $('#control_payment_hidden').val(control_payment);
 
                     const deliveryType = getRadioValue('delivery_type_radiobutton');
+                    if (!deliveryType) {
+                        toggleLoading($button, $buttonText, $buttonLoader, false);
+                        showDocumentIssues([{ field: 'delivery_mode', message: window.npDocumentFormT.delivery_mode_missing }], window.npDocumentFormT.issues_title, 'error');
+                        return;
+                    }
                     const pickup_locker = deliveryType === 'locker' ? 1 : 0;
                     const delivery_type_address = deliveryType === 'address' ? 1 : 0;
                     let warehouse_volume = $('input[name="warehouse_volume"]').val();
@@ -639,6 +749,7 @@
                             control_payment: control_payment,
                             announced_value: $('input[name="cost"]').val(),
                             amount_due_value: $('input[name="amount_due"]').val(),
+                            delivery_mode: deliveryType,
                             pickup_locker: pickup_locker,
                             delivery_type_address: delivery_type_address,
                             volumetric_volume: $('input[name="volumetric_volume"]').val(),
@@ -652,36 +763,50 @@
                         },
                         dataType: 'json',
                         success: function(data) {
-                            if (data.ref_id) {
-                                if (data.hasOwnProperty('tracking_document')) {
-                                    showTrackingDocument(data.tracking_document);
-                                }
-                                $('.fn_document_input')
-                                    .text(data.int_doc_number)
-                                    .attr('href', 'https://new.novaposhta.ua/edit/' + data.ref_id)
-                                    .closest('.document_wrap')
-                                    .removeClass('hidden');
-                                $('.fn_error').addClass('hidden');
-                                
+                            if (data && data.ref_id) {
+                                clearDocumentIssues();
                                 lockDocumentButtons();
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
-                                
-                                toastr.success(window.npDocumentFormT.invoice_created.replace('%s', escapeHtml(data.int_doc_number)), window.npDocumentFormT.success);
-                                setTimeout(() => location.reload(), 1500);
-                            } else if (data.error) {
+                                // З попередженнями не перезавантажуємо: інакше оператор
+                                // їх не побачить. Блок ТТН з'явиться після оновлення сторінки.
+                                if (Array.isArray(data.warning_issues) && data.warning_issues.length) {
+                                    showDocumentIssues(
+                                        data.warning_issues,
+                                        window.npDocumentFormT.created_with_warnings.replace('%s', data.int_doc_number),
+                                        'warning',
+                                        data.ref_id
+                                    );
+                                    toastr.warning(
+                                        window.npDocumentFormT.created_with_warnings.replace('%s', escapeHtml(data.int_doc_number)),
+                                        window.npDocumentFormT.attention
+                                    );
+                                    return;
+                                }
+                                toastr.success(
+                                    window.npDocumentFormT.invoice_created.replace('%s', escapeHtml(data.int_doc_number)),
+                                    window.npDocumentFormT.success
+                                );
+                                setTimeout(function() { location.reload(); }, 1500);
+                            } else if (data && data.error) {
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
-                                // Рядок уже екранований — .text() показав би сутності.
-                                var message = attachErrorText(data.error);
-                                $('.fn_error').html(message).removeClass('hidden');
-                                toastr.error(message, window.npDocumentFormT.error);
+                                showDocumentIssues(
+                                    data.issues && data.issues.length ? data.issues : [{field: 'general', message: data.error}],
+                                    window.npDocumentFormT.issues_title, 'error'
+                                );
+                                toastr.error(window.npDocumentFormT.issues_toast, window.npDocumentFormT.error);
                             } else {
                                 toggleLoading($button, $buttonText, $buttonLoader, false);
-                                toastr.error(window.npDocumentFormT.unknown_error, window.npDocumentFormT.error);
+                                showDocumentIssues([{field: 'general', message: window.npDocumentFormT.unknown_error}], window.npDocumentFormT.issues_unrecognized, 'error');
                             }
                         },
                         error: function(xhr, status, errorThrown) {
                             toggleLoading($button, $buttonText, $buttonLoader, false);
-                            toastr.error(window.npDocumentFormT.create_error.replace('%s', escapeHtml(errorThrown)), window.npDocumentFormT.error);
+                            var apiData = xhr && xhr.responseJSON ? xhr.responseJSON : null;
+                            var issues = apiData && Array.isArray(apiData.issues) && apiData.issues.length
+                                ? apiData.issues
+                                : [{ field: 'api', message: window.npDocumentFormT.issues_connection }];
+                            showDocumentIssues(issues, window.npDocumentFormT.issues_no_confirmation, 'error');
+                            toastr.error(window.npDocumentFormT.issues_toast, window.npDocumentFormT.error);
                         }
                     });
                 });

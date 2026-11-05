@@ -14,6 +14,10 @@ use Okay\Entities\PaymentsEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Entities\NovaPoshtaTrackingEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\DeliveryDestinationResolver;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\DocumentIssueTranslator;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\DocumentRequestGuard;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\RecipientAddressAudit;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaPaymentHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentFormatter;
 
@@ -96,12 +100,6 @@ class NovaPoshtaDocumentService
             $volumetricParams = $this->getVolumetricParams($formData['volumetric_params_from_form'], $deliveryData);
             $warehouseParams = $this->getWarehouseParams($formData['warehouse_params_from_form'], $deliveryData);
 
-            // Зберігаємо дані в БД (перед створенням накладної)
-            $this->saveDeliveryData($deliveryDataEntity, $deliveryData, $formData, $volumetricParams, $warehouseParams, false);
-
-            // Оновлюємо локальний об'єкт deliveryData після збереження
-            $deliveryData = $deliveryDataEntity->findOne(['order_id' => $orderId]);
-
             // Отримуємо замовлення
             $ordersEntity = $this->entityFactory->get(OrdersEntity::class);
             $order = $ordersEntity->findOne(['id' => $orderId]);
@@ -118,27 +116,32 @@ class NovaPoshtaDocumentService
                 }
             }
 
-            // Валідація даних замовлення
+            // Одне визначення призначення для ручного й масового створення:
+            // суперечливі дані зупиняються до запиту в НП.
+            $delivery = $this->getDeliveryData($order);
+            try {
+                $destination = DeliveryDestinationResolver::resolve(
+                    $deliveryData,
+                    $delivery && is_array($delivery->settings) ? $delivery->settings : [],
+                    $formData['requested_delivery_mode']
+                );
+            } catch (\InvalidArgumentException $e) {
+                return ['error' => $e->getMessage()];
+            }
+            $serviceType = $destination['service_type'];
+            $formData['delivery_type_address'] = $destination['mode'] === 'address';
+            $formData['pickup_locker'] = $destination['pickup_locker'];
+
             $validationError = $this->validateOrderData($order, $deliveryData, $formData);
             if ($validationError) {
                 return ['error' => $validationError];
             }
 
-            // Отримуємо дані доставки та валідуємо телефон
-            $delivery = $this->getDeliveryData($order);
-            // Визначаємо service_type на основі типу доставки з форми
-            // delivery_type_address → WarehouseDoors
-            // delivery_type_warehouse або delivery_type_locker (pickup_locker) → WarehouseWarehouse
-            // За замовчуванням → WarehouseWarehouse
-            $serviceType = 'WarehouseWarehouse'; // За замовчуванням
-            if (!empty($formData['delivery_type_address'])) {
-                $serviceType = 'WarehouseDoors';
-            } elseif (!empty($formData['pickup_locker']) && $formData['pickup_locker'] == 1) {
-                $serviceType = 'WarehouseWarehouse'; // Поштомат
-            } elseif ($delivery && is_array($delivery->settings) && !empty($delivery->settings['service_type'])) {
-                // Якщо є налаштування, використовуємо їх (для зворотної сумісності)
-                $serviceType = $delivery->settings['service_type'];
-            }
+            // Форма зберігається лише після перевірки призначення: відхилений
+            // запит не має міняти дані доставки замовлення.
+            $this->saveDeliveryData($deliveryDataEntity, $deliveryData, $formData, $volumetricParams, $warehouseParams, false);
+            $deliveryData = $deliveryDataEntity->findOne(['order_id' => $orderId]);
+
             $phoneFormatted = $this->formatPhone($order->phone ?? '');
             if (!$phoneFormatted) {
                 return ['error' => 'User phone is invalid'];
@@ -193,6 +196,10 @@ class NovaPoshtaDocumentService
             if (!$apiRequest) {
                 return ['error' => 'Failed to build API request'];
             }
+            // Адреса й відділення в одному запиті: НП сама вибрала б, куди везти.
+            if ($requestError = DocumentRequestGuard::error($apiRequest)) {
+                return ['error' => $requestError];
+            }
 
             // Відправляємо запит та обробляємо відповідь
             $result = $this->apiHelper->sendApiRequest($apiRequest);
@@ -201,6 +208,25 @@ class NovaPoshtaDocumentService
             // Перевіряємо чи є помилка в відповіді
             if (!empty($response['error'])) {
                 return $response;
+            }
+
+            // ТТН уже створена й записана в замовлення: розбіжність лише
+            // показуємо оператору, повторного save не робимо.
+            if (!empty($response['int_doc_number']) && $serviceType === 'WarehouseDoors') {
+                $verification = $this->verifyCreatedDestination(
+                    (string)$response['ref_id'], $serviceType, $deliveryData
+                );
+                $response['destination_verification'] = $verification['status'];
+                if (!empty($verification['warning'])) {
+                    $response['warning_issues'][] = [
+                        'field' => $verification['status'] === 'mismatch' ? 'delivery_mode' : 'api',
+                        'message' => $verification['warning'],
+                    ];
+                }
+            }
+
+            if (!empty($response['warning_issues'])) {
+                $response['warning'] = implode(' ', array_column($response['warning_issues'], 'message'));
             }
 
             // Якщо накладна створена успішно, зберігаємо дані з форми в БД та отримуємо tracking дані
@@ -229,9 +255,9 @@ class NovaPoshtaDocumentService
             }
 
             return $response;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             error_log('NovaPoshtaDocumentService::generateDocument error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
-            return ['error' => 'Internal Server Error: ' . $e->getMessage()];
+            return ['error' => 'Internal Server Error: запит завершився з помилкою. Перед повторною спробою перевірте, чи ТТН не створено в Новій пошті.'];
         }
     }
 
@@ -262,13 +288,15 @@ class NovaPoshtaDocumentService
                 
                 if (!empty($result['error'])) {
                     $results['errors']++;
-                    $results['details'][$orderId] = ['error' => $result['error']];
+                    $issues = $result['issues'] ?? DocumentIssueTranslator::explainMany([(string)$result['error']]);
+                    $results['details'][$orderId] = ['error' => implode(' ', array_column($issues, 'message'))];
                 } else {
                     $results['success']++;
                     $results['details'][$orderId] = [
                         'success' => true,
                         'int_doc_number' => $result['int_doc_number'] ?? null,
-                        'ref_id' => $result['ref_id'] ?? null
+                        'ref_id' => $result['ref_id'] ?? null,
+                        'warning' => $result['warning'] ?? null
                     ];
                 }
             } catch (\Exception $e) {
@@ -357,14 +385,17 @@ class NovaPoshtaDocumentService
         $pickupLocker = $this->getPriorityValue($pickupLockerFromForm, ($deliveryData && isset($deliveryData->pickup_locker)) ? $deliveryData->pickup_locker : null, null, 0);
         $pickupLocker = (int)$pickupLocker;
 
-        // Delivery type address
-        $deliveryTypeAddressFromForm = $this->getRequestParam('delivery_type_address');
-        // Визначаємо чи це адресна доставка: з форми або за наявністю адресних полів в БД
-        $isAddressDelivery = false;
-        if ($deliveryTypeAddressFromForm !== null) {
-            $isAddressDelivery = (int)$deliveryTypeAddressFromForm === 1;
-        } elseif ($deliveryData && !empty($deliveryData->city_name) && !empty($deliveryData->street)) {
-            $isAddressDelivery = true;
+        // Передаємо саме вибір оператора; за відсутності вибору тип визначить
+        // резолвер з налаштувань замовлення / однозначних даних NP Cost.
+        $requestedMode = $this->getRequestParam('delivery_mode');
+        $requestedMode ??= $this->getRequestParam('delivery_type_radiobutton');
+        if ($requestedMode === null) {
+            $legacyAddress = $this->getRequestParam('delivery_type_address');
+            $legacyLocker = $this->getRequestParam('pickup_locker');
+            if ($legacyAddress !== null || $legacyLocker !== null) {
+                $requestedMode = (int)$legacyAddress === 1 ? 'address'
+                    : ((int)$legacyLocker === 1 ? 'locker' : 'warehouse');
+            }
         }
 
         // Door delivery (доставка до дверей)
@@ -452,7 +483,8 @@ class NovaPoshtaDocumentService
             'amount_due_value' => $this->getRequestParam('amount_due_value'),
             'pickup_locker' => $pickupLocker,
             'pickup_locker_from_form' => $pickupLockerFromForm,
-            'delivery_type_address' => $isAddressDelivery,
+            'requested_delivery_mode' => $requestedMode,
+            'delivery_type_address' => false, // перевизначає DeliveryDestinationResolver
             'door_delivery' => $doorDelivery,
             'lifting_floor' => $liftingFloor,
             'volumetric_params_from_form' => $volumetricParamsFromForm,
@@ -656,10 +688,16 @@ class NovaPoshtaDocumentService
             if (!$deliveryData || empty($deliveryData->street)) {
                 return 'Empty client street for address delivery';
             }
+            if (!$deliveryData || trim((string)($deliveryData->house ?? '')) === '') {
+                return 'Empty client house for address delivery';
+            }
         } else {
             // Для доставки на відділення/поштомат перевіряємо city_id
             if (!$deliveryData || empty($deliveryData->city_id)) {
                 return 'Empty client city';
+            }
+            if (!$deliveryData || empty($deliveryData->warehouse_id)) {
+                return 'Empty client warehouse';
             }
         }
 
@@ -698,11 +736,15 @@ class NovaPoshtaDocumentService
             return null;
         }
 
-        if (!empty($delivery->settings)) {
+        // Сутність могла вже розпакувати settings — тоді лишаємо масив як є.
+        if (is_array($delivery->settings)) {
+            return $delivery;
+        }
+        if (is_string($delivery->settings) && $delivery->settings !== '') {
             try {
-                $unserialized = unserialize($delivery->settings, ['allowed_classes' => [\stdClass::class]]);
+                $unserialized = @unserialize($delivery->settings, ['allowed_classes' => false]);
                 $delivery->settings = is_array($unserialized) ? $unserialized : [];
-            } catch (\Exception) {
+            } catch (\Throwable) {
                 $delivery->settings = [];
             }
         } else {
@@ -921,9 +963,14 @@ class NovaPoshtaDocumentService
         $totalVolume,
         $invoicePaymentData = null
     ) {
-        // Визначаємо тип доставки
-        $isAddressDelivery = !empty($formData['delivery_type_address']);
-        $isWarehouseDelivery = !$isAddressDelivery && ($serviceType === 'WarehouseWarehouse' || $serviceType === 'DoorsWarehouse');
+        // ServiceType визначений та перевірений резолвером до створення.
+        // Не залежимо від застарілих прапорців форми: саме це раніше
+        // спричиняло WarehouseDoors БЕЗ recipient address fields.
+        if (!in_array($serviceType, ['WarehouseDoors', 'WarehouseWarehouse'], true)) {
+            throw new \InvalidArgumentException('Unsupported Nova Poshta ServiceType: ' . (string)$serviceType);
+        }
+        $isAddressDelivery = $serviceType === 'WarehouseDoors';
+        $isWarehouseDelivery = $serviceType === 'WarehouseWarehouse';
 
         // Для адресної доставки отримуємо тип населеного пункту
         $settlementType = '';
@@ -1239,19 +1286,49 @@ class NovaPoshtaDocumentService
     }
 
     /**
+     * Перечитує створену ТТН і звіряє призначення із замовленням.
+     * Порожня чи неповна відповідь — «не перевірено», а не «збігається».
+     *
+     * @return array{status:string,warning?:string}
+     */
+    private function verifyCreatedDestination(string $ref, string $expectedServiceType, $deliveryData): array
+    {
+        $needsReview = [
+            'status' => 'unverified',
+            'warning' => 'ТТН створено, але getDocument не надав достатньо даних для перевірки адреси. Це не означає, що тип доставки неправильний. Перевірте адресу в кабінеті НП.',
+        ];
+        if ($ref === '') {
+            return $needsReview;
+        }
+
+        try {
+            $result = $this->apiHelper->sendApiRequest([
+                'apiKey' => $this->settings->get('newpost_key'),
+                'modelName' => 'InternetDocument',
+                'calledMethod' => 'getDocument',
+                'methodProperties' => ['Ref' => $ref],
+            ], false, 0);
+        } catch (\Throwable) {
+            return $needsReview;
+        }
+
+        if (!is_object($result) || empty($result->success) || empty($result->data[0]) || !is_object($result->data[0])) {
+            return $needsReview;
+        }
+        return RecipientAddressAudit::inspect($result->data[0], $expectedServiceType, $deliveryData);
+    }
+
+    /**
      * Обробляє відповідь API
      */
     private function processApiResponse($result, $orderId)
     {
         if (empty($result->success) || empty($result->data[0])) {
-            $errorMessage = $this->apiHelper->getErrorMessage($result);
-
-            // Якщо помилка про недоступність контролю оплати, надаємо більш зрозуміле повідомлення
-            if (stripos($errorMessage, 'AfterpaymentOnGoodsCost') !== false && stripos($errorMessage, 'unavailable') !== false) {
-                $errorMessage = 'Контроль оплати недоступний. Будь ласка, вимкніть контроль оплати та спробуйте ще раз.';
-            }
-
-            return ['error' => $errorMessage];
+            $issues = DocumentIssueTranslator::explainMany($this->apiHelper->getErrorMessages($result));
+            return [
+                'error' => implode(' ', array_column($issues, 'message')),
+                'issues' => $issues,
+            ];
         }
 
         $documentData = $result->data[0];
@@ -1259,6 +1336,14 @@ class NovaPoshtaDocumentService
             'int_doc_number' => $documentData->IntDocNumber,
             'ref_id' => $documentData->Ref,
         ];
+        // НП попереджає майже про кожну ТТН (Cargo → Parcel, RecipientType),
+        // тож оператору показуємо лише ті, що стосуються призначення.
+        if (!empty($result->warnings) && is_array($result->warnings)) {
+            $destinationWarnings = DocumentIssueTranslator::destinationWarnings($result->warnings);
+            if ($destinationWarnings) {
+                $response['warning_issues'] = $destinationWarnings;
+            }
+        }
 
         // Зберігаємо tracking дані
         $trackingEntity = $this->entityFactory->get(NovaPoshtaTrackingEntity::class);

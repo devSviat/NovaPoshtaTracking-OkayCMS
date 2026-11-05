@@ -401,3 +401,13 @@
     flex: 0 0 auto;
     white-space: nowrap;
 }
+
+.np-document-feedback { border: 1px solid #c42d37; border-left: 4px solid #c42d37; background: #fff5f4; border-radius: 5px; padding: 12px 15px; margin: 10px 0 16px; color: #54252a; }
+.np-document-feedback--warning { border-color: #bf8117; background: #fffaf0; color: #664a1e; }
+.np-document-feedback__title { display: block; margin-bottom: 7px; font-weight: 700; }
+.np-document-feedback__list { margin: 0; padding-left: 18px; }
+.np-document-feedback__item { margin: 6px 0; line-height: 1.45; overflow-wrap: anywhere; }
+.np-document-feedback__jump { display: inline; margin-left: 9px; padding: 2px 4px; border: 0; background: transparent; color: #14599f; text-decoration: underline; cursor: pointer; }
+.np-document-feedback__jump:focus-visible { outline: 2px solid #14599f; outline-offset: 2px; }
+.np-document-field-error { outline: 2px solid #d12e40 !important; outline-offset: 3px; border-radius: 3px; }
+@media (max-width: 575px) { .np-document-feedback__jump { display: block; margin-left: 0; margin-top: 5px; } }
