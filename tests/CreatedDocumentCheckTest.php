@@ -120,9 +120,9 @@ class CreatedDocumentCheckTest extends TestCase
 
     public function testPhonesAndKeysAreMasked(): void
     {
-        $issue = DocumentIssueTranslator::explain('Unknown key 0123456789abcdef0123456789abcdef for 380671234567');
+        $issue = DocumentIssueTranslator::explain('Unknown key 0123456789abcdef0123456789abcdef for 380000000001');
 
-        $this->assertStringNotContainsString('380671234567', $issue['message']);
+        $this->assertStringNotContainsString('380000000001', $issue['message']);
         $this->assertStringNotContainsString('0123456789abcdef0123456789abcdef', $issue['message']);
     }
 

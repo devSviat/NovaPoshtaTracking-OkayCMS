@@ -169,7 +169,7 @@ class DeliveryDestinationTest extends TestCase
         $tracking = $this->createStub(NovaPoshtaTrackingEntity::class);
         $tracking->method('findOne')->willReturn(null);
         $orders = $this->createStub(OrdersEntity::class);
-        $orders->method('findOne')->willReturn((object) ['id' => 77, 'delivery_id' => 1, 'paid' => 0, 'phone' => '380671234567', 'name' => 'Іван', 'last_name' => 'Петренко']);
+        $orders->method('findOne')->willReturn((object) ['id' => 77, 'delivery_id' => 1, 'paid' => 0, 'phone' => '380000000001', 'name' => 'Іван', 'last_name' => 'Петренко']);
         $deliveries = $this->createStub(DeliveriesEntity::class);
         $deliveries->method('get')->willReturn((object) ['id' => 1, 'settings' => serialize($deliverySettings)]);
 
@@ -233,7 +233,7 @@ class DeliveryDestinationTest extends TestCase
             (object) ['id' => 77, 'name' => 'Іван', 'last_name' => 'Петренко'],
             $sender,
             [],
-            '380671234567',
+            '380000000001',
             '06.11.2026',
             1799,
             [],
