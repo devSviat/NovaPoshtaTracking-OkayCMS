@@ -20,6 +20,7 @@ use Okay\Helpers\DiscountsHelper;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPWarehousesEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaApiHelper;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\DeliveryDestinationResolver;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaPaymentHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\NovaPoshtaStatusHelper;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentFormatter;
@@ -134,6 +135,7 @@ class BackendExtender implements ExtensionInterface
         $this->design->assign('pickup_locker', $pickupLocker);
 
         $this->design->assign('dataNPCostDeliveryDataEntity', $deliveryData);
+        $this->assignDeliveryDestination($deliveryData, $dataOrdersEntity);
 
         if ($deliveryData) {
             $novaposhtaDeliveryData = clone $deliveryData;
@@ -323,6 +325,7 @@ class BackendExtender implements ExtensionInterface
                 }
 
                 $this->design->assign('dataNPCostDeliveryDataEntity', $deliveryData);
+                $this->assignDeliveryDestination($deliveryData, $order);
                 $this->design->assign(
                     'npAmountDueOnPickup',
                     $this->paymentHelper->amountDueOnPickup($order, (float) ($order->total_price ?? 0))
@@ -577,6 +580,10 @@ class BackendExtender implements ExtensionInterface
             $this->design->assign('novaposhta_mass_success', $_SESSION['novaposhta_mass_success']);
             unset($_SESSION['novaposhta_mass_success']);
         }
+        if (!empty($_SESSION['novaposhta_mass_warnings'])) {
+            $this->design->assign('novaposhta_mass_warnings', $_SESSION['novaposhta_mass_warnings']);
+            unset($_SESSION['novaposhta_mass_warnings']);
+        }
 
         if ($this->request->method('post')) {
             $ids = $this->request->post('check');
@@ -631,6 +638,15 @@ class BackendExtender implements ExtensionInterface
         $total = count($ids);
         $success = $results['success'] ?? 0;
         $errors = $results['errors'] ?? 0;
+        $warnings = [];
+        foreach ($results['details'] ?? [] as $orderId => $detail) {
+            if (!empty($detail['warning'])) {
+                $warnings[$orderId] = $detail['warning'];
+            }
+        }
+        if ($warnings) {
+            $_SESSION['novaposhta_mass_warnings'] = $warnings;
+        }
 
         if ($errors > 0) {
             $message = sprintf(
@@ -651,6 +667,34 @@ class BackendExtender implements ExtensionInterface
             $message = $this->backendTranslations->getTranslation('sviat__novaposhta_tracking__success_done') . ' ' . $total;
             $_SESSION['novaposhta_mass_success'] = $message;
         }
+    }
+
+    /** Обчислюємо той самий тип призначення, що й у generateDocument(). */
+    private function assignDeliveryDestination($deliveryData, $order): void
+    {
+        $settings = [];
+        if ($order && !empty($order->delivery_id)) {
+            $delivery = $this->entityFactory->get(DeliveriesEntity::class)->get($order->delivery_id);
+            if ($delivery) {
+                if (is_array($delivery->settings)) {
+                    $settings = $delivery->settings;
+                } elseif (is_string($delivery->settings) && $delivery->settings !== '') {
+                    $parsed = @unserialize($delivery->settings, ['allowed_classes' => false]);
+                    $settings = is_array($parsed) ? $parsed : [];
+                }
+            }
+        }
+
+        $mode = '';
+        $error = '';
+        try {
+            $destination = DeliveryDestinationResolver::resolve($deliveryData, $settings);
+            $mode = $destination['mode'];
+        } catch (\InvalidArgumentException $e) {
+            $error = $e->getMessage();
+        }
+        $this->design->assign('np_delivery_mode', $mode);
+        $this->design->assign('np_delivery_mode_error', $error);
     }
 
     /** Визначає поштомат за типом відділення (warehouse_id) і встановлює pickup_locker */

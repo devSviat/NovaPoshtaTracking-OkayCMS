@@ -13,6 +13,7 @@ use Okay\Modules\Sviat\NovaPoshtaTracking\Entities\NovaPoshtaTrackingEntity;
 use Okay\Modules\OkayCMS\NovaposhtaCost\Entities\NPCostDeliveryDataEntity;
 use Okay\Entities\OrdersEntity;
 use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\TrackingDocumentFormatter;
+use Okay\Modules\Sviat\NovaPoshtaTracking\Helpers\DocumentIssueTranslator;
 
 class TrackingDocumentController extends AbstractController
 {
@@ -43,7 +44,8 @@ class TrackingDocumentController extends AbstractController
             $result = $documentService->generateDocument($orderId);
 
             if (!empty($result['error'])) {
-                $this->jsonError($result['error']);
+                $issues = $result['issues'] ?? DocumentIssueTranslator::explainMany([(string)$result['error']]);
+                $this->jsonError(implode(' ', array_column($issues, 'message')), true, $issues);
                 return;
             }
 
@@ -369,16 +371,19 @@ class TrackingDocumentController extends AbstractController
     /**
      * Повертає JSON помилку
      */
-    private function jsonError(string $message, bool $sendResponse = true): void
+    private function jsonError(string $message, bool $sendResponse = true, array $issues = []): void
     {
+        $payload = ['error' => $message];
+        if ($issues) {
+            $payload['issues'] = $issues;
+        }
         if ($sendResponse) {
             $this->response->setContentType(RESPONSE_JSON);
             $this->response->sendHeaders();
-            $this->response->sendStream(json_encode(['error' => $message]), RESPONSE_JSON);
+            $this->response->sendStream(json_encode($payload, JSON_UNESCAPED_UNICODE), RESPONSE_JSON);
             exit;
-        } else {
-            $this->response->setContent(json_encode(['error' => $message]), RESPONSE_JSON);
         }
+        $this->response->setContent(json_encode($payload, JSON_UNESCAPED_UNICODE), RESPONSE_JSON);
     }
 
     /**

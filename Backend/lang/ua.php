@@ -180,3 +180,14 @@ $lang['sviat__novaposhta_tracking__attach_not_found'] = 'Нова Пошта н�
 $lang['sviat__novaposhta_tracking__attach_elsewhere'] = 'Цю накладну вже привʼязано до замовлення №%s.';
 $lang['sviat__novaposhta_tracking__attach_invalid'] = 'Номер накладної — це рівно 14 цифр.';
 $lang['sviat__novaposhta_tracking__attach_confirm'] = 'Привʼязати';
+
+$lang['sviat__novaposhta_tracking__issues_title'] = 'ТТН не створено — виправте зазначені поля';
+$lang['sviat__novaposhta_tracking__issues_toast'] = 'Не вдалося створити ТТН. Пояснення — над кнопкою створення.';
+$lang['sviat__novaposhta_tracking__issues_unrecognized'] = 'Відповідь Нової пошти не розпізнано';
+$lang['sviat__novaposhta_tracking__issues_no_confirmation'] = 'Немає підтвердження створення ТТН';
+$lang['sviat__novaposhta_tracking__issues_connection'] = 'З’єднання з Новою поштою перервалося або сервер повернув помилку. Перед повторним натисканням перевірте, чи ТТН уже не створена в кабінеті НП.';
+$lang['sviat__novaposhta_tracking__issues_jump'] = 'Показати, де виправити';
+$lang['sviat__novaposhta_tracking__issues_open_ttn'] = 'Відкрити ТТН у кабінеті Нової пошти';
+$lang['sviat__novaposhta_tracking__created_with_warnings'] = 'ТТН %s створено, але перевірте її перед відправленням';
+$lang['sviat__novaposhta_tracking__delivery_mode_missing'] = 'Не визначено тип доставки. Перевірте в замовленні адресу, відділення чи поштомат і збережіть зміни.';
+$lang['sviat__novaposhta_tracking__mass_warnings_title'] = 'Ці ТТН створено, але пункт доставки треба перевірити в кабінеті НП:';
