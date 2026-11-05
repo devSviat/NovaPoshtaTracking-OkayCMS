@@ -225,7 +225,7 @@ class NovaPoshtaDocumentService
             // показуємо оператору, повторного save не робимо.
             if (!empty($response['int_doc_number']) && $serviceType === 'WarehouseDoors') {
                 $verification = $this->verifyCreatedDestination(
-                    (string)$response['ref_id'], $serviceType, $deliveryData
+                    (string)$response['ref_id'], $serviceType, $deliveryData, $recipientData['city_ref'] ?? null
                 );
                 $response['destination_verification'] = $verification['status'];
                 if (!empty($verification['warning'])) {
@@ -945,21 +945,38 @@ class NovaPoshtaDocumentService
             }
         }
 
-        if ($cityRef === null && $cityName !== '') {
-            $found = $this->apiHelper->sendApiRequest(
-                $this->addressRequest('searchSettlements', ['CityName' => $cityName, 'Limit' => '50', 'Page' => '1'], 'Address'),
-                true
-            );
-            $settlements = !empty($found->success) ? ($found->data[0]->Addresses ?? []) : [];
-            $byRef = array_filter($settlements, fn ($s) => $storedRef !== '' && ($s->Ref ?? '') === $storedRef);
-            $byName = array_filter($settlements, fn ($s) => AddressNames::normalize((string)($s->MainDescription ?? '')) === AddressNames::normalize($cityName)
-                && ($area === '' || AddressNames::normalize((string)($s->Area ?? '')) === AddressNames::normalize($area)));
-            $match = $byRef ?: (count($byName) === 1 ? $byName : []);
-            $deliveryCity = $match ? (string)(reset($match)->DeliveryCity ?? '') : '';
-            $cityRef = $deliveryCity !== '' ? $deliveryCity : null;
+        if ($cityRef === null) {
+            // DeliveryCity віддає лише пошук за назвою, тож назву Ref населеного
+            // пункту беремо з довідника: у замовленні вона буває порожня чи текстом підказки.
+            $searchName = $cityName;
+            if ($storedRef !== '') {
+                $settlement = $this->apiHelper->sendApiRequest($this->addressRequest('getSettlements', ['Ref' => $storedRef]), true);
+                if (!empty($settlement->success) && ($settlement->data[0]->Ref ?? '') === $storedRef) {
+                    $searchName = (string)($settlement->data[0]->Description ?? '') ?: $cityName;
+                    $area = (string)($settlement->data[0]->AreaDescription ?? '') ?: $area;
+                }
+            }
+            $cityRef = $searchName !== '' ? $this->findDeliveryCity($storedRef, $searchName, $area) : null;
         }
 
         return $this->addressLookups[$key] = $cityRef;
+    }
+
+    /** Ref міста для населеного пункту: за Ref, а без нього — за єдиним збігом назви й області. */
+    private function findDeliveryCity(string $settlementRef, string $cityName, string $area): ?string
+    {
+        $found = $this->apiHelper->sendApiRequest(
+            $this->addressRequest('searchSettlements', ['CityName' => $cityName, 'Limit' => '50', 'Page' => '1'], 'Address'),
+            true
+        );
+        $settlements = !empty($found->success) ? ($found->data[0]->Addresses ?? []) : [];
+        $byRef = array_filter($settlements, fn ($s) => $settlementRef !== '' && ($s->Ref ?? '') === $settlementRef);
+        $byName = array_filter($settlements, fn ($s) => AddressNames::normalize((string)($s->MainDescription ?? '')) === AddressNames::normalize($cityName)
+            && ($area === '' || AddressNames::normalize((string)($s->Area ?? '')) === AddressNames::normalize($area)));
+        $match = $byRef ?: (count($byName) === 1 ? $byName : []);
+        $deliveryCity = $match ? (string)(reset($match)->DeliveryCity ?? '') : '';
+
+        return $deliveryCity !== '' ? $deliveryCity : null;
     }
 
     private function findStreetRef(string $cityRef, string $street): ?string
@@ -1451,7 +1468,7 @@ class NovaPoshtaDocumentService
      *
      * @return array{status:string,warning?:string}
      */
-    private function verifyCreatedDestination(string $ref, string $expectedServiceType, $deliveryData): array
+    private function verifyCreatedDestination(string $ref, string $expectedServiceType, $deliveryData, ?string $resolvedCityRef = null): array
     {
         $needsReview = [
             'status' => 'unverified',
@@ -1475,7 +1492,7 @@ class NovaPoshtaDocumentService
         if (!is_object($result) || empty($result->success) || empty($result->data[0]) || !is_object($result->data[0])) {
             return $needsReview;
         }
-        return RecipientAddressAudit::inspect($result->data[0], $expectedServiceType, $deliveryData);
+        return RecipientAddressAudit::inspect($result->data[0], $expectedServiceType, $deliveryData, $resolvedCityRef);
     }
 
     /**

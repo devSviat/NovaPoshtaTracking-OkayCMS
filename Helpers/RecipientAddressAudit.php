@@ -18,9 +18,10 @@ final class RecipientAddressAudit
     /**
      * @param object $document Елемент data[0] відповіді getDocument
      * @param object|null $localDelivery Рядок NPCostDeliveryDataEntity
+     * @param string|null $resolvedCityRef Ref міста, який модуль сам знайшов у довіднику й передав у ТТН
      * @return array{status:string,warning?:string} status: verified | mismatch | unverified
      */
-    public static function inspect(object $document, string $expectedServiceType, $localDelivery): array
+    public static function inspect(object $document, string $expectedServiceType, $localDelivery, ?string $resolvedCityRef = null): array
     {
         $actualService = self::text($document->ServiceTypeRef ?? null);
         if ($actualService === '') {
@@ -37,13 +38,18 @@ final class RecipientAddressAudit
         }
 
         // NovaposhtaCost кладе в city_id то Ref міста, то Ref населеного пункту,
-        // а getDocument повертає Ref міста — тож при різних Ref звіряємо назву.
-        $expectedCityRef = self::text($localDelivery->city_id ?? null);
+        // а getDocument повертає Ref міста — тож без знайденого модулем Ref звіряємо назву.
         $actualCityRef = self::text($document->CityRecipientRef ?? null);
-        $sameRef = $expectedCityRef !== '' && strcasecmp($expectedCityRef, $actualCityRef) === 0;
-        $expectedCity = AddressNames::normalize(AddressNames::city(self::text($localDelivery->city_name ?? null))['city']);
-        $actualCity = AddressNames::normalize(self::text($document->CityRecipient ?? null));
-        if (!$sameRef && $expectedCity !== '' && $actualCity !== '' && $expectedCity !== $actualCity) {
+        if ($resolvedCityRef !== null && $resolvedCityRef !== '') {
+            $cityMismatch = strcasecmp($resolvedCityRef, $actualCityRef) !== 0;
+        } else {
+            $expectedCityRef = self::text($localDelivery->city_id ?? null);
+            $sameRef = $expectedCityRef !== '' && strcasecmp($expectedCityRef, $actualCityRef) === 0;
+            $expectedCity = AddressNames::normalize(AddressNames::city(self::text($localDelivery->city_name ?? null))['city']);
+            $actualCity = AddressNames::normalize(self::text($document->CityRecipient ?? null));
+            $cityMismatch = !$sameRef && $expectedCity !== '' && $actualCity !== '' && $expectedCity !== $actualCity;
+        }
+        if ($cityMismatch) {
             return [
                 'status' => 'mismatch',
                 'warning' => 'Населений пункт у ТТН (' . self::text($document->CityRecipient ?? null) . ') не збігається із замовленням. Перевірте адресу до відправлення.',
