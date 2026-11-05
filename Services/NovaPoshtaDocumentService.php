@@ -1269,8 +1269,13 @@ class NovaPoshtaDocumentService
      */
     private function getShipmentDate()
     {
-        $todayDateTimestamp = strtotime($this->settings->get('novapost_time_today_date'));
-        return time() > $todayDateTimestamp ? date('d.m.Y', time() + 86400) : date('d.m.Y');
+        $cutoff = trim((string) $this->settings->get('novapost_time_today_date'));
+        $cutoffTimestamp = $cutoff === '' ? false : strtotime($cutoff);
+        // Без налаштування (чи з нерозпізнаним часом) модуль завжди ставив завтрашню дату — лишаємо так.
+        if ($cutoffTimestamp === false || time() > $cutoffTimestamp) {
+            return date('d.m.Y', time() + 86400);
+        }
+        return date('d.m.Y');
     }
 
     /**
