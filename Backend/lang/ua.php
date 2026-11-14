@@ -51,14 +51,14 @@ $lang['sviat__novaposhta_tracking__payment_form'] = 'Форма оплати:';
 $lang['sviat__novaposhta_tracking__payment_cash'] = 'Готівкою';
 $lang['sviat__novaposhta_tracking__payment_cash_tooltip'] = 'Готівкова оплата: готівкою або банківською карткою на сайті/через термінал.';
 $lang['sviat__novaposhta_tracking__payment_noncash'] = 'Безготівковий';
-$lang['sviat__novaposhta_tracking__payment_noncash_tooltip'] = 'Безготівкова оплата для організацій з договором з НП. Оплата на розрахунковий рахунок згідно акту виконаних робіт (не банківська картка).';
+$lang['sviat__novaposhta_tracking__payment_noncash_tooltip'] = 'Безготівкова оплата для організацій з договором з НП. Оплата на розрахунковий рахунок згідно з актом виконаних робіт (не банківська картка).';
 $lang['sviat__novaposhta_tracking__city'] = 'Місто';
 $lang['sviat__novaposhta_tracking__select_city'] = 'Виберіть місто';
 $lang['sviat__novaposhta_tracking__btn_create_invoice'] = 'Створити накладну';
 $lang['sviat__novaposhta_tracking__creating'] = 'Створення...';
 $lang['sviat__novaposhta_tracking__order_paid_control_disabled'] = 'Замовлення сплачене, контроль оплати недоступний';
 $lang['sviat__novaposhta_tracking__attention'] = 'Увага';
-$lang['sviat__novaposhta_tracking__volumetric_weight_limit'] = 'Об\'ємна вага (%s кг) перевищує ліміт 30 кг. Об\'єм обмежено до 0.12 м³';
+$lang['sviat__novaposhta_tracking__volumetric_weight_limit'] = 'Об\'ємна вага (%s кг) перевищує ліміт 30 кг. Об\'єм обмежено до 0,12 м³';
 $lang['sviat__novaposhta_tracking__invoice_created_success'] = 'Накладну %s успішно створено';
 $lang['sviat__novaposhta_tracking__success'] = 'Успіх';
 $lang['sviat__novaposhta_tracking__unknown_error'] = 'Невідома помилка';
@@ -67,7 +67,7 @@ $lang['sviat__novaposhta_tracking__create_invoice_error'] = 'Помилка ст
 
 // nova_poshta_admin.tpl
 $lang['sviat__novaposhta_tracking__module_description'] = 'Модуль для генерації експрес-накладних Нової Пошти';
-$lang['sviat__novaposhta_tracking__module_important'] = 'Важливо: Модуль працює за умови встановленого OkayCMS/NovaposhtaCost і доповнює його можливості.';
+$lang['sviat__novaposhta_tracking__module_important'] = 'Важливо: модуль працює за умови встановленого OkayCMS/NovaposhtaCost і доповнює його можливості.';
 $lang['sviat__novaposhta_tracking__main_settings'] = 'Основні налаштування';
 $lang['sviat__novaposhta_tracking__api_key'] = 'Ключ API "Нова Пошта"';
 $lang['sviat__novaposhta_tracking__sender_phone'] = 'Телефон відправника';
@@ -75,7 +75,7 @@ $lang['sviat__novaposhta_tracking__sender_city'] = 'Місто відправн�
 $lang['sviat__novaposhta_tracking__sender_warehouse'] = 'Відділення відправника';
 $lang['sviat__novaposhta_tracking__select_warehouse'] = 'Виберіть відділення';
 $lang['sviat__novaposhta_tracking__time_today'] = 'Час відправки сьогодні';
-$lang['sviat__novaposhta_tracking__time_today_tooltip'] = 'Час, до якого прийняті замовлення відправляються в той же день. Після цього часу - на наступний робочий день.';
+$lang['sviat__novaposhta_tracking__time_today_tooltip'] = 'Час, до якого прийняті замовлення відправляються того самого дня. Після цього часу — наступного робочого дня.';
 $lang['sviat__novaposhta_tracking__default_shipment_settings'] = 'Базові налаштування відправок';
 $lang['sviat__novaposhta_tracking__payment'] = 'Оплата';
 $lang['sviat__novaposhta_tracking__parcel_payer'] = 'Платник посилки';
@@ -85,7 +85,7 @@ $lang['sviat__novaposhta_tracking__payment_cash_short'] = 'Готівкою';
 $lang['sviat__novaposhta_tracking__payment_cash_short_tooltip'] = 'Готівкою або банківською карткою на сайті/через термінал.';
 $lang['sviat__novaposhta_tracking__payment_noncash_short'] = 'Безготівковий';
 $lang['sviat__novaposhta_tracking__payment_noncash_short_tooltip'] = 'Безготівковий розрахунок для відправника або отримувача доступний лише за умови підписання договору з Новою Поштою.';
-$lang['sviat__novaposhta_tracking__enable_control_payment'] = 'Включити контроль оплати';
+$lang['sviat__novaposhta_tracking__enable_control_payment'] = 'Увімкнути контроль оплати';
 $lang['sviat__novaposhta_tracking__enable_control_payment_tooltip'] = 'Послуга передбачає контроль оплати готівкою за отримане Отримувачем відправлення. Кошти перераховуються Відправнику на його поточний рахунок (наступного робочого дня) на підставі укладеного договору з Новою Поштою.';
 $lang['sviat__novaposhta_tracking__locker_dimensions'] = 'Габарити для поштомату';
 $lang['sviat__novaposhta_tracking__volume_place'] = 'Об\'єм місця';
@@ -99,7 +99,7 @@ $lang['sviat__novaposhta_tracking__height_cm'] = 'Висота';
 $lang['sviat__novaposhta_tracking__max_61_cm'] = 'Максимум: 61 см';
 $lang['sviat__novaposhta_tracking__warehouse_dimensions'] = 'Габарити для відділення';
 $lang['sviat__novaposhta_tracking__volume'] = 'Об\'єм';
-$lang['sviat__novaposhta_tracking__volume_warehouse_tooltip'] = "Максимум: 0.12 м³ (об'ємна вага не більше 30 кг)";
+$lang['sviat__novaposhta_tracking__volume_warehouse_tooltip'] = "Максимум: 0,12 м³ (об'ємна вага не більше 30 кг)";
 $lang['sviat__novaposhta_tracking__actual_weight_warehouse_tooltip'] = 'Максимум: 30 кг (для відділення)';
 
 // nova_poshta_status.tpl
@@ -108,7 +108,7 @@ $lang['sviat__novaposhta_tracking__hint_copied'] = '✔ Скопійовано';
 $lang['sviat__novaposhta_tracking__status'] = 'Статус:';
 
 // novaposhta_mass_result.tpl
-$lang['sviat__novaposhta_tracking__mass_errors_title'] = 'Помилки по замовленнях (Нова Пошта):';
+$lang['sviat__novaposhta_tracking__mass_errors_title'] = 'Помилки в замовленнях (Нова Пошта):';
 
 // np_status_filters.tpl
 $lang['sviat__novaposhta_tracking__all_delivery_statuses'] = 'Всі статуси доставки';
@@ -149,7 +149,7 @@ $lang['sviat__novaposhta_tracking__btn_remove_invoice'] = 'Видалити на
 $lang['sviat__novaposhta_tracking__btn_detach_invoice'] = 'Відвʼязати накладну';
 
 // tracking_document.js
-$lang['sviat__novaposhta_tracking__order_id_not_found'] = 'Order ID не знайдено';
+$lang['sviat__novaposhta_tracking__order_id_not_found'] = 'ID замовлення не знайдено';
 $lang['sviat__novaposhta_tracking__invoice_updated'] = 'Накладну оновлено';
 $lang['sviat__novaposhta_tracking__connection_error'] = 'Помилка з\'єднання з сервером. Перевірте підключення до інтернету.';
 $lang['sviat__novaposhta_tracking__server_error'] = 'Помилка сервера (код %s). Спробуйте пізніше.';
@@ -183,11 +183,11 @@ $lang['sviat__novaposhta_tracking__attach_confirm'] = 'Привʼязати';
 
 $lang['sviat__novaposhta_tracking__issues_title'] = 'ТТН не створено — виправте зазначені поля';
 $lang['sviat__novaposhta_tracking__issues_toast'] = 'Не вдалося створити ТТН. Пояснення — над кнопкою створення.';
-$lang['sviat__novaposhta_tracking__issues_unrecognized'] = 'Відповідь Нової пошти не розпізнано';
+$lang['sviat__novaposhta_tracking__issues_unrecognized'] = 'Відповідь Нової Пошти не розпізнано';
 $lang['sviat__novaposhta_tracking__issues_no_confirmation'] = 'Немає підтвердження створення ТТН';
-$lang['sviat__novaposhta_tracking__issues_connection'] = 'З’єднання з Новою поштою перервалося або сервер повернув помилку. Перед повторним натисканням перевірте, чи ТТН уже не створена в кабінеті НП.';
+$lang['sviat__novaposhta_tracking__issues_connection'] = 'З’єднання з Новою Поштою перервалося або сервер повернув помилку. Перед повторним натисканням перевірте в кабінеті НП, чи ТТН не створено вже.';
 $lang['sviat__novaposhta_tracking__issues_jump'] = 'Показати, де виправити';
-$lang['sviat__novaposhta_tracking__issues_open_ttn'] = 'Відкрити ТТН у кабінеті Нової пошти';
+$lang['sviat__novaposhta_tracking__issues_open_ttn'] = 'Відкрити ТТН у кабінеті Нової Пошти';
 $lang['sviat__novaposhta_tracking__created_with_warnings'] = 'ТТН %s створено, але перевірте її перед відправленням';
 $lang['sviat__novaposhta_tracking__delivery_mode_missing'] = 'Не визначено тип доставки. Перевірте в замовленні адресу, відділення чи поштомат і збережіть зміни.';
 $lang['sviat__novaposhta_tracking__mass_warnings_title'] = 'Ці ТТН створено, але пункт доставки треба перевірити в кабінеті НП:';
